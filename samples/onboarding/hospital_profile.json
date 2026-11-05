@@ -1,0 +1,36 @@
+{
+  "hospital_name": "Godavari Demo Multispeciality Hospital, Nalgonda",
+  "gstin": "36AAECG4821K1ZJ",
+  "hfr_id": "IN3610000456",
+  "modules": [
+    "opd",
+    "ipd",
+    "pharmacy",
+    "lab",
+    "insurance"
+  ],
+  "departments": [
+    "General Medicine",
+    "General Surgery",
+    "Obstetrics & Gynaecology",
+    "Pharmacy",
+    "Laboratory",
+    "Reception",
+    "Nursing",
+    "Accounts"
+  ],
+  "letterhead_uploaded": true,
+  "printer_tested": false,
+  "whatsapp_templates": {
+    "appointment_reminder": "approved",
+    "lab_report": "pending",
+    "bill": "approved",
+    "prescription": "rejected"
+  },
+  "tpa_empanelments": [
+    "Nimbus TPA",
+    "Orbit Insurance",
+    "Lotus Health TPA"
+  ],
+  "go_live_at": "2026-11-05T09:00:00+05:30"
+}

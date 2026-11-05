@@ -1,0 +1,20 @@
+﻿CASUALTY / EMERGENCY RECORD                         MLC No: 4471/2026 (Nalgonda Town PS informed)
+
+Patient: Mohammed Khaja
+Age: 45
+Sex: M
+Reg No: GDH-IP-26-0927
+Brought by 108 ambulance at 08:05 on 04.11.2026 following road traffic accident (two-wheeler skid) at 07:30.
+GCS on arrival 13/15. Vomiting x 2.
+CT brain: Right frontal contusion, no midline shift.
+
+Diagnosis: Head injury with right frontal contusion following RTA
+ICD 10: S06.33
+Line of treatment: Intensive care
+Procedure: Conservative neuro ICU management
+Doctor: Dr. A. Raghavendra (Neurosurgery)
+Past history: Nil
+Room: ICU
+Expected LOS: 7 days
+Estimated amount: Rs 2,00,000
+Insurer: Orbit General Insurance     Policy No: OGI-IN-2026-330417

@@ -1,0 +1,26 @@
+﻿REQUEST FOR CASHLESS HOSPITALISATION (PRE-AUTHORISATION)
+Godavari Demo Multispeciality Hospital, Nalgonda    ROHINI ID: 8900080123456
+
+Patient Name: Ramesh Goud
+Age/Sex: 52/M
+UHID: GDH-IP-26-0912
+Mobile: +91 98480 11223
+Insurance Company: Deccan Shield General Insurance
+TPA: Nimbus TPA
+Policy No: DSG/HL/2026/0045121
+Member ID: NMB-88213-01
+Date of Admission: 03/11/2026
+Type of Admission: Emergency
+Treating Doctor: Dr. K. Srinivas
+Doctor Reg No: TSMC/FMR/04512
+Provisional Diagnosis: Acute calculous cholecystitis
+ICD-10: K80.00
+Line of Treatment: Surgical
+Proposed Procedure: Laparoscopic cholecystectomy
+Duration of Ailment: Pain abdomen x 3 days
+Past History: K/C/O HTN x 4 yrs on Tab Amlodipine 5 mg
+Room Type: Semi-private
+Expected Length of Stay: 3 days
+Estimated Cost: Rs. 85,000/-
+
+Declaration: I hereby declare that the information furnished is true.

@@ -1,0 +1,189 @@
+{
+  "_note": "Synthetic data. All hospitals, patients, insurers, TPAs and portals are fictional.",
+  "hospital": "Godavari Demo Multispeciality Hospital, Nalgonda",
+  "claims": [
+    {
+      "portal": "nimbus", "portal_ref": "NB-26-104871", "tpa_name": "Nimbus TPA", "sum_insured": 500000,
+      "hms_status_since_min": -30,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Ramesh Goud", "age": 52, "gender": "Male", "uhid": "GDH-IP-26-0912",
+        "insurer": "Deccan Shield General Insurance", "tpa": "Nimbus TPA", "policy_number": "DSG/HL/2026/0045121",
+        "member_id": "NMB-88213-01", "admission_date": "2026-11-03", "admission_type": "Emergency",
+        "treating_doctor": "Dr. K. Srinivas", "doctor_registration_no": "TSMC/FMR/04512",
+        "provisional_diagnosis": "Acute calculous cholecystitis", "icd10_code": "K80.00", "line_of_treatment": "Surgical",
+        "proposed_procedure": "Laparoscopic cholecystectomy", "duration_of_ailment": "Pain abdomen x 3 days",
+        "past_history": "K/C/O HTN x 4 yrs on Tab Amlodipine 5 mg", "alcohol_history": null, "room_type": "Semi-private",
+        "expected_los_days": 3, "estimated_cost": 85000, "is_rta": false},
+      "portal_script": [
+        {"status": "Pre-Auth Pending"},
+        {"status": "Query Raised", "query": "Dear Sir/Madam,\nWith reference to the cashless request for the above patient, please provide the following:\n1. Duration of present ailment with first consultation papers.\n2. Copy of USG abdomen report.\n3. Past history of diabetes / hypertension with previous treatment records.\n4. Alcohol consumption history, if any.\nRegards,\nNimbus TPA - Medical Team"},
+        {"status": "Approved", "approved": 80000},
+        {"status": "Final Bill Under Process", "approved": 80000},
+        {"status": "Final Approved", "approved": 78500},
+        {"status": "Settled", "approved": 78500}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "nimbus", "portal_ref": "NB-26-104902", "tpa_name": "Nimbus TPA", "sum_insured": 300000,
+      "hms_status_since_min": -50,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note"],
+      "fields": {"patient_name": "Lakshmi Devi", "age": 34, "gender": "Female", "uhid": "GDH-IP-26-0918",
+        "insurer": "Godavari General Insurance", "tpa": "Nimbus TPA", "policy_number": "GGI-FL-7781230",
+        "member_id": "NMB-55102-02", "admission_date": "2026-11-04", "admission_type": "Planned",
+        "treating_doctor": "Dr. P. Madhavi", "doctor_registration_no": "TSMC/FMR/07781",
+        "provisional_diagnosis": "G2P1L1 at 39 weeks, previous LSCS", "icd10_code": "O82", "line_of_treatment": "Maternity",
+        "proposed_procedure": "Elective repeat LSCS", "duration_of_ailment": "Term pregnancy", "past_history": "Previous LSCS 2022",
+        "alcohol_history": "Nil", "room_type": "Single private", "expected_los_days": 4, "estimated_cost": 60000, "is_rta": false},
+      "portal_script": [
+        {"status": "Pre-Auth Pending"},
+        {"status": "Partially Approved", "approved": 45000},
+        {"status": "Final Bill Under Process", "approved": 45000},
+        {"status": "Final Approved", "approved": 45000}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "nimbus", "portal_ref": "NB-26-104955", "tpa_name": "Nimbus TPA", "sum_insured": 1000000,
+      "hms_status_since_min": -95,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Syed Imran", "age": 41, "gender": "Male", "uhid": "GDH-IP-26-0921",
+        "insurer": "Ananta Health Insurance", "tpa": "Nimbus TPA", "policy_number": "AHI/2026/IND/339812",
+        "member_id": "NMB-77310-01", "admission_date": "2026-11-04", "admission_type": "Emergency",
+        "treating_doctor": "Dr. R. Fareed", "doctor_registration_no": null,
+        "provisional_diagnosis": "Acute pancreatitis", "icd10_code": "K85.90", "line_of_treatment": "Medical",
+        "proposed_procedure": "Conservative management, ICU monitoring", "duration_of_ailment": "Epigastric pain x 2 days",
+        "past_history": "Nil", "alcohol_history": null, "room_type": "ICU", "expected_los_days": 6, "estimated_cost": 120000, "is_rta": false},
+      "portal_script": [
+        {"status": "Pre-Auth Pending"},
+        {"status": "Query Raised", "query": "Kindly clarify the following before we can process the request:\n1. History of alcohol consumption with duration and quantity.\n2. Serum amylase and lipase reports.\n3. Treating doctor's registration number.\nNimbus TPA"},
+        {"status": "Rejected"}
+      ],
+      "portal_start": 0
+    },
+    {
+      "portal": "orbit", "portal_ref": "OR-2026-55120", "tpa_name": "Orbit Insurance", "sum_insured": 500000,
+      "hms_status_since_min": -20,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Venkatesh Rao", "age": 67, "gender": "Male", "uhid": "GDH-IP-26-0899",
+        "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-SR-2026-118734",
+        "member_id": "ORB-1187-34", "admission_date": "2026-11-02", "admission_type": "Emergency",
+        "treating_doctor": "Dr. S. Chaitanya", "doctor_registration_no": "TSMC/FMR/02231",
+        "provisional_diagnosis": "Left intertrochanteric fracture femur (fall at home)", "icd10_code": "S72.10",
+        "line_of_treatment": "Surgical", "proposed_procedure": "Proximal femoral nailing (PFN)",
+        "duration_of_ailment": "Since fall on 01/11/2026", "past_history": "K/C/O DM2 x 10 yrs", "alcohol_history": "Denies",
+        "room_type": "Semi-private", "expected_los_days": 5, "estimated_cost": 165000, "is_rta": false},
+      "portal_script": [
+        {"status": "PA-INIT"},
+        {"status": "PA-AUTH", "approved": 150000},
+        {"status": "FB-RECD", "approved": 150000},
+        {"status": "FB-AUTH", "approved": 148000},
+        {"status": "CL-PAID", "approved": 148000}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "orbit", "portal_ref": "OR-2026-55187", "tpa_name": "Orbit Insurance", "sum_insured": 300000,
+      "hms_status_since_min": -40,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Anjali Sharma", "age": 28, "gender": "Female", "uhid": "GDH-IP-26-0925",
+        "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-FL-2026-220981",
+        "member_id": "ORB-2209-81", "admission_date": "2026-11-04", "admission_type": "Emergency",
+        "treating_doctor": "Dr. N. Sandeep", "doctor_registration_no": "TSMC/FMR/09920",
+        "provisional_diagnosis": "Dengue fever with thrombocytopenia", "icd10_code": "A97.1", "line_of_treatment": "Medical",
+        "proposed_procedure": null, "duration_of_ailment": null, "past_history": "Nil", "alcohol_history": "Nil",
+        "room_type": "General ward", "expected_los_days": 4, "estimated_cost": 45000, "is_rta": false},
+      "portal_script": [
+        {"status": "PA-INIT"},
+        {"status": "PA-DEF", "query": "Kindly furnish the following:\ni) NS1 antigen / Dengue IgM report\nii) Platelet count trend since admission\niii) Duration of fever before admission"},
+        {"status": "PA-HOLD"},
+        {"status": "PA-AUTH", "approved": 42000}
+      ],
+      "portal_start": 0
+    },
+    {
+      "portal": "orbit", "portal_ref": "OR-2026-55210", "tpa_name": "Orbit Insurance", "sum_insured": 1000000,
+      "hms_status_since_min": -25,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Mohammed Khaja", "age": 45, "gender": "Male", "uhid": "GDH-IP-26-0927",
+        "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-IN-2026-330417",
+        "member_id": "ORB-3304-17", "admission_date": "2026-11-04", "admission_type": "Emergency",
+        "treating_doctor": "Dr. A. Raghavendra", "doctor_registration_no": "TSMC/FMR/03317",
+        "provisional_diagnosis": "Head injury with right frontal contusion following RTA", "icd10_code": "S06.33",
+        "line_of_treatment": "Intensive care", "proposed_procedure": "Conservative neuro ICU management",
+        "duration_of_ailment": "RTA on 04/11/2026 at 07:30", "past_history": "Nil", "alcohol_history": null,
+        "room_type": "ICU", "expected_los_days": 7, "estimated_cost": 200000, "is_rta": true},
+      "portal_script": [
+        {"status": "PA-INIT"},
+        {"status": "PA-DEF", "query": "Please submit: i) MLC copy / FIR ii) Alcohol / breath-analyser history at the time of accident iii) CT brain report"},
+        {"status": "PA-AUTH", "approved": 175000}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "lotus", "portal_ref": "LT-88213", "tpa_name": "Lotus Health TPA", "sum_insured": 300000,
+      "hms_status_since_min": -15,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Saritha Reddy", "age": 58, "gender": "Female", "uhid": "GDH-DC-26-0311",
+        "insurer": "Ananta Health Insurance", "tpa": "Lotus Health TPA", "policy_number": "AHI/2026/IND/118220",
+        "member_id": "LTS-118220-02", "admission_date": "2026-11-04", "admission_type": "Planned",
+        "treating_doctor": "Dr. V. Keerthi", "doctor_registration_no": "TSMC/FMR/05518",
+        "provisional_diagnosis": "Senile mature cataract right eye", "icd10_code": "H25.9", "line_of_treatment": "Day care",
+        "proposed_procedure": "Phacoemulsification with foldable IOL (RE)", "duration_of_ailment": "Diminution of vision x 1 year",
+        "past_history": "K/C/O HTN", "alcohol_history": "Nil", "room_type": "Day care", "expected_los_days": 1,
+        "estimated_cost": 35000, "is_rta": false},
+      "portal_script": [
+        {"status": "In Review"},
+        {"status": "Authorised (Full)", "approved": 35000},
+        {"status": "Discharge Review", "approved": 35000},
+        {"status": "Discharge Authorised", "approved": 35000},
+        {"status": "Payment Released", "approved": 35000}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "lotus", "portal_ref": "LT-88240", "tpa_name": "Lotus Health TPA", "sum_insured": 500000,
+      "hms_status_since_min": -70,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note"],
+      "fields": {"patient_name": "Prakash Naidu", "age": 61, "gender": "Male", "uhid": "GDH-IP-26-0930",
+        "insurer": "Deccan Shield General Insurance", "tpa": "Lotus Health TPA", "policy_number": "DSG/HL/2026/0099310",
+        "member_id": "LTS-99310-01", "admission_date": "2026-11-04", "admission_type": "Emergency",
+        "treating_doctor": "Dr. M. Harish", "doctor_registration_no": "TSMC/FMR/01102",
+        "provisional_diagnosis": "Acute anterior wall STEMI", "icd10_code": "I21.0", "line_of_treatment": "Surgical",
+        "proposed_procedure": "Coronary angiography + PTCA with drug-eluting stent to LAD", "duration_of_ailment": "Chest pain x 4 hours",
+        "past_history": null, "alcohol_history": "Occasional", "room_type": "CCU", "expected_los_days": 4,
+        "estimated_cost": 250000, "is_rta": false},
+      "portal_script": [
+        {"status": "In Review"},
+        {"status": "Information Required", "query": "Information required to process the cashless request:\n- ECG and 2D echo reports\n- Past history of DM / HTN / IHD with duration\n- Stent type, make and cost (implant details)\nLotus Health TPA - Pre-auth cell"},
+        {"status": "Authorised (Partial)", "approved": 200000},
+        {"status": "Enhancement Review", "approved": 200000},
+        {"status": "Authorised (Full)", "approved": 250000}
+      ],
+      "portal_start": 0
+    },
+    {
+      "portal": "lotus", "portal_ref": "LT-88277", "tpa_name": "Lotus Health TPA", "sum_insured": 200000,
+      "hms_status_since_min": -35,
+      "documents": ["preauth_form", "id_proof", "policy_card", "admission_note", "investigation_report"],
+      "fields": {"patient_name": "Fatima Begum", "age": 49, "gender": "Female", "uhid": "GDH-IP-26-0933",
+        "insurer": "Godavari General Insurance", "tpa": "Lotus Health TPA", "policy_number": "GGI-IN-4471902",
+        "member_id": "LTS-4471902-01", "admission_date": "2026-11-04", "admission_type": "Emergency",
+        "treating_doctor": "Dr. S. Nazia", "doctor_registration_no": "TSMC/FMR/06650",
+        "provisional_diagnosis": "Acute pyelonephritis", "icd10_code": "N10", "line_of_treatment": "Medical",
+        "proposed_procedure": null, "duration_of_ailment": "Fever with flank pain x 5 days", "past_history": "K/C/O DM2",
+        "alcohol_history": "Nil", "room_type": "General ward", "expected_los_days": 5, "estimated_cost": 40000, "is_rta": false},
+      "portal_script": [
+        {"status": "In Review"},
+        {"status": "Declined"}
+      ],
+      "portal_start": 1
+    },
+    {
+      "portal": "lotus", "portal_ref": "LT-88301", "tpa_name": "Lotus Health TPA", "in_hms": false,
+      "fields": {"patient_name": "B. Anitha", "policy_number": "AHI/2026/IND/220145"},
+      "portal_script": [{"status": "In Review"}, {"status": "Authorised (Full)", "approved": 30000}],
+      "portal_start": 0
+    }
+  ]
+}

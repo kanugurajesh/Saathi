@@ -1,0 +1,55 @@
+{
+  "_note": "Ground truth for samples/documents. null = the field is NOT in the document; filling it counts as a hallucination.",
+  "01_preauth_form_cholecystitis.txt": {
+    "patient_name": "Ramesh Goud", "age": 52, "gender": "Male", "uhid": "GDH-IP-26-0912", "patient_phone": "9848011223",
+    "insurer": "Deccan Shield General Insurance", "tpa": "Nimbus TPA", "policy_number": "DSG/HL/2026/0045121",
+    "member_id": "NMB-88213-01", "admission_date": "2026-11-03", "admission_type": "Emergency",
+    "treating_doctor": "Dr. K. Srinivas", "doctor_registration_no": "TSMC/FMR/04512",
+    "provisional_diagnosis": "Acute calculous cholecystitis", "icd10_code": "K80.00", "line_of_treatment": "Surgical",
+    "proposed_procedure": "Laparoscopic cholecystectomy", "duration_of_ailment": "Pain abdomen x 3 days",
+    "past_history": "K/C/O HTN x 4 yrs on Tab Amlodipine 5 mg", "alcohol_history": null, "room_type": "Semi-private",
+    "expected_los_days": 3, "estimated_cost": 85000
+  },
+  "02_admission_note_stemi.txt": {
+    "patient_name": "Prakash Naidu", "age": 61, "gender": "Male", "uhid": "GDH-IP-26-0930", "patient_phone": "9848012340",
+    "insurer": "Deccan Shield General Insurance", "tpa": "Lotus Health TPA", "policy_number": "DSG/HL/2026/0099310",
+    "member_id": "LTS-99310-01", "admission_date": "2026-11-04", "admission_type": "Emergency",
+    "treating_doctor": "Dr. M. Harish", "doctor_registration_no": null,
+    "provisional_diagnosis": "Acute anterior wall STEMI", "proposed_procedure": "Coronary angiography + PTCA with drug-eluting stent to LAD",
+    "duration_of_ailment": "Chest pain x 4 hours", "past_history": "K/C/O DM2 x 8 yrs on OHA, HTN x 5 yrs",
+    "alcohol_history": "occasional", "room_type": "CCU", "expected_los_days": 4, "estimated_cost": 250000
+  },
+  "03_ortho_case_sheet_fracture.txt": {
+    "patient_name": "Venkatesh Rao", "age": 67, "gender": "Male", "uhid": "GDH-IP-26-0899", "patient_phone": null,
+    "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-SR-2026-118734", "member_id": "ORB-1187-34",
+    "admission_date": "2026-11-02", "treating_doctor": "Dr. S. Chaitanya", "doctor_registration_no": "TSMC/FMR/02231",
+    "provisional_diagnosis": "Left intertrochanteric fracture femur", "line_of_treatment": "Surgical",
+    "proposed_procedure": "Proximal femoral nailing (PFN)", "duration_of_ailment": "fall on 01/11/2026",
+    "past_history": "DM2 x 10 yrs", "alcohol_history": "Denies", "room_type": "Semi-private", "estimated_cost": 165000
+  },
+  "04_cover_letter_dengue_freetext.txt": {
+    "patient_name": "Anjali Sharma", "age": 28, "gender": "Female", "uhid": "GDH-IP-26-0925", "patient_phone": null,
+    "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-FL-2026-220981", "member_id": "ORB-2209-81",
+    "admission_date": "2026-11-04", "admission_type": "Emergency", "treating_doctor": "Dr. N. Sandeep",
+    "doctor_registration_no": "TSMC/FMR/09920", "provisional_diagnosis": "Dengue fever with thrombocytopenia",
+    "icd10_code": "A97.1", "line_of_treatment": "Medical", "duration_of_ailment": "five days",
+    "past_history": "no known co-morbidities", "alcohol_history": "denies alcohol intake", "room_type": "general ward",
+    "expected_los_days": 4, "estimated_cost": 45000
+  },
+  "05_maternity_preauth_lscs.txt": {
+    "patient_name": "Lakshmi Devi", "age": 34, "gender": "Female", "uhid": "GDH-IP-26-0918", "patient_phone": "9848055660",
+    "insurer": "Godavari General Insurance", "tpa": "Nimbus TPA", "policy_number": "GGI-FL-7781230", "member_id": "NMB-55102-02",
+    "admission_date": "2026-11-04", "admission_type": "Planned", "treating_doctor": "Dr. P. Madhavi",
+    "doctor_registration_no": null, "provisional_diagnosis": "G2P1L1 at 39 weeks, previous LSCS", "line_of_treatment": "Maternity",
+    "proposed_procedure": "Elective repeat LSCS", "past_history": "Previous LSCS 2022", "alcohol_history": "Nil",
+    "room_type": "Single private", "expected_los_days": 4, "estimated_cost": 60000
+  },
+  "06_casualty_rta_head_injury.txt": {
+    "patient_name": "Mohammed Khaja", "age": 45, "gender": "Male", "uhid": "GDH-IP-26-0927", "patient_phone": null,
+    "insurer": "Orbit General Insurance", "tpa": null, "policy_number": "OGI-IN-2026-330417", "member_id": null,
+    "admission_date": "2026-11-04", "treating_doctor": "Dr. A. Raghavendra", "doctor_registration_no": null,
+    "provisional_diagnosis": "Head injury with right frontal contusion following RTA", "icd10_code": "S06.33",
+    "line_of_treatment": "Intensive care", "proposed_procedure": "Conservative neuro ICU management", "past_history": "Nil",
+    "room_type": "ICU", "expected_los_days": 7, "estimated_cost": 200000, "is_rta": true
+  }
+}

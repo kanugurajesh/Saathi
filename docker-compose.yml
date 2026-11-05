@@ -1,0 +1,22 @@
+services:
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+
+  portals:  # fictional TPA portals for the bots to drive
+    build: .
+    command: ["uv", "run", "uvicorn", "mock_portals.server:app", "--host", "0.0.0.0", "--port", "8100"]
+    ports: ["8100:8100"]
+
+  app:
+    build: .
+    env_file: [.env]
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      PORTAL_BASE_URL: http://portals:8100
+    ports: ["8000:8000"]
+    depends_on: [mongo, portals]
+
+volumes:
+  mongo-data:

@@ -1,0 +1,22 @@
+﻿PRE-AUTHORISATION REQUEST - MATERNITY
+
+Name of the Patient: Lakshmi Devi
+Age: 34
+Gender: Female
+Hospital ID: GDH-IP-26-0918
+Mobile No: 9848055660
+Name of Insurer: Godavari General Insurance
+TPA Name: Nimbus TPA
+Policy Number: GGI-FL-7781230
+TPA ID: NMB-55102-02
+Admission Date: 04/11/2026
+Admission Type: Planned
+Treating Consultant: Dr. P. Madhavi
+Provisional Diagnosis: G2P1L1 at 39 weeks, previous LSCS
+Proposed Procedure: Elective repeat LSCS
+LMP: 03/02/2026    EDD: 10/11/2026
+Past History: Previous LSCS 2022
+Alcohol: Nil
+Room Category: Single private
+No. of days: 4
+Total Estimate: 60000

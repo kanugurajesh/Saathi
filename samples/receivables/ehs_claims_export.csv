@@ -1,0 +1,7 @@
+Case No,Patient Name,EHS Card No,Procedure Name,Claim Submitted Date,Claim Amount,Approved Amount,Paid Amount,Payment Date,Claim Status,Remarks
+EH/2026/00871,K. Srinivasa Rao,EHS-TS-1180452,Total knee replacement - unilateral,25/03/2026,180000,165000,,,Claim Approved - Payment Pending,Implant cost capped at ceiling rate
+EH/2026/00872,Sujatha Mamidi,EHS-TS-2207719,Coronary angiography + PTCA,06/06/2026,150000,,,,Claim Under Process,
+EH/2026/00873,Prabhakar Reddy Kasula,EHS-TS-0981226,Septoplasty,11/07/2026,28000,28000,,,Claim Approved - Payment Pending,
+EH/2026/00874,Vijaya Kumari Allam,EHS-TS-3310984,Vaginal hysterectomy,03/09/2026,48000,,,,Claim Under Process,
+EH/2026/00875,Ramesh Babu Yerra,EHS-TS-1452207,Chemotherapy - cycle 3,20/10/2026,24000,,,,Claim Submitted,
+EH/2026/00876,Aruna Devi Pulla,EHS-TS-2768310,Haemodialysis (10 sessions),12/08/2026,30000,0,,,Claim Rejected,Duplicate claim - already settled under EH/2026/00811

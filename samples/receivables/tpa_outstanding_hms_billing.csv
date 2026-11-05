@@ -1,0 +1,8 @@
+Bill No,Patient,TPA,Insurer,Claim No,Discharge Date,Bill Amount,Approved Amount,Settled Amount,TDS,Settlement Date,Status,Deduction Remarks
+GDH-B-26-03312,Shobha Rani Thota,Nimbus TPA,Deccan Shield General Insurance,NB-26-098812,14/07/2026,142000,128500,,,,Final approved - payment awaited,Room rent proportionate deduction - eligible room single AC
+GDH-B-26-04170,Mahesh Goud Pittala,Nimbus TPA,Godavari General Insurance,NB-26-101240,02/09/2026,96000,88000,,,,Final approved - payment awaited,Non-payable consumables as per IRDAI list
+GDH-B-26-04788,Kavitha Rao Nalla,Nimbus TPA,Deccan Shield General Insurance,NB-26-103003,10/10/2026,61000,61000,54900,6100,28/10/2026,Settled,
+GDH-B-26-02904,Srikanth Kommu,Orbit Insurance,Orbit Insurance,OR-2026-50877,21/06/2026,230000,207000,,,,Final approved - payment awaited,Co-pay 10% as per policy terms
+GDH-B-26-04511,Padma Kandula,Orbit Insurance,Orbit Insurance,OR-2026-53310,18/09/2026,78000,,,,,Final bill under process,
+GDH-B-26-04066,Nagaraju Bandi,Lotus Health TPA,Kakatiya Health Insurance,LT-86510,30/08/2026,54000,0,,,,Declined,Pre-existing disease - waiting period not completed
+GDH-B-26-05023,Swapna Gajula,Lotus Health TPA,Kakatiya Health Insurance,LT-87102,25/10/2026,120000,112000,,,,Final approved - payment awaited,Pharmacy charges above MRP / tariff difference

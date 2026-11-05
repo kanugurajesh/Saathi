@@ -1,0 +1,26 @@
+﻿GODAVARI DEMO MULTISPECIALITY HOSPITAL
+Department of Orthopaedics
+
+Pt. Name - Venkatesh Rao
+Age - 67
+Sex - Male
+MRN - GDH-IP-26-0899
+DOA - 02-11-2026
+Under care of - Dr. S. Chaitanya
+TSMC Reg - TSMC/FMR/02231
+
+Complaints: Pain and inability to bear weight on left hip after a fall at home on 01/11/2026.
+Since - fall on 01/11/2026
+X-ray pelvis with both hips: Left intertrochanteric fracture.
+K/C/O - DM2 x 10 yrs
+H/O alcohol - Denies
+
+Working Diagnosis: Left intertrochanteric fracture femur
+Planned surgery: Proximal femoral nailing (PFN) under spinal anaesthesia
+Implant: PFN nail (titanium) with screws - cost to be shown separately.
+Ward: Semi-private
+Approx cost: 1.65 lakh
+
+Insurance co: Orbit General Insurance
+Policy number: OGI-SR-2026-118734
+Member/Card ID: ORB-1187-34

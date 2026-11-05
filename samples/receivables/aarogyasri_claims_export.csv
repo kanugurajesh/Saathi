@@ -1,0 +1,15 @@
+Case No,Patient Name,Card No,Procedure Name,Claim Submitted Date,Claim Amount,Approved Amount,Paid Amount,Payment Date,Claim Status,Remarks
+AS/2026/041101,Mallesh Yadav,TAP-0412-77810,Coronary angioplasty (PTCA) - single stent,12/03/2026,165000,165000,,,Claim Approved - Payment Pending,
+AS/2026/041102,Pochamma Kurma,TAP-0412-55102,Total abdominal hysterectomy,28/04/2026,45000,45000,,,Claim Approved - Payment Pending,
+AS/2026/041103,Venkatesh Gundu,TAP-0412-61123,Maintenance haemodialysis (12 sessions),05/05/2026,36000,33600,,,Claim Approved - Payment Pending,One session not justified - deducted
+AS/2026/041104,Saidulu Banoth,TAP-0412-48870,ORIF - fracture shaft of femur,20/06/2026,70000,62000,,,Claim Approved - Payment Pending,Implant cost restricted to package ceiling
+AS/2026/041105,Anjamma Gaddam,TAP-0412-39011,Laparoscopic cholecystectomy,02/07/2026,40000,,,,Claim Under Process,
+AS/2026/041106,Ramulu Naik,TAP-0412-70245,Open appendicectomy,15/07/2026,30000,,,,Pending For Clarification,Post-op histopathology report not uploaded
+AS/2026/041107,Lakshmi Bai Dharavath,TAP-0412-28554,Inguinal hernioplasty with mesh,01/08/2026,32000,,,,Claim Under Process,
+AS/2026/041108,Shankar Bollam,TAP-0412-90317,CABG - triple vessel,19/08/2026,210000,200000,,,Claim Approved - Payment Pending,ICU stay beyond package days not justified
+AS/2026/041109,Yadamma Chinthala,TAP-0412-11876,Craniotomy for extradural haematoma,10/09/2026,150000,,,,Claim Under Process,
+AS/2026/041110,Narsimha Pagidi,TAP-0412-67420,PCNL - left renal calculus,22/09/2026,55000,,,,Pending For Clarification,Pre and post-operative X-KUB not uploaded
+AS/2026/041111,Bhagya Lakshmi Erra,TAP-0412-50998,TURP,08/10/2026,42000,,,,Claim Submitted,
+AS/2026/041112,Krishna Mudiraj,TAP-0412-33107,Laparoscopic appendicectomy,18/10/2026,30000,,,,Claim Submitted,
+AS/2026/041113,Sangeetha Vadla,TAP-0412-44562,Total thyroidectomy,10/02/2026,38000,38000,38000,21/09/2026,Claim Paid,
+AS/2026/041114,Ravinder Kethavath,TAP-0412-82239,Lumbar laminectomy,14/05/2026,85000,0,,,Claim Rejected,Patient not eligible - card not active on date of admission

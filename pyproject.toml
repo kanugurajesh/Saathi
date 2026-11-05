@@ -1,0 +1,34 @@
+[project]
+name = "hextgen-automation"
+version = "0.1.0"
+description = "ClaimPilot (TPA claims automation) + Onboarding Copilot (sub-24h hospital go-live) for AI-native HMS"
+readme = "README.md"
+authors = [{ name = "kanugurajesh", email = "kanugurajesh3@gmail.com" }]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.12",
+    "pymongo>=4.8",
+    "mongomock>=4.3",
+    "google-genai>=1.0",
+    "playwright>=1.48",
+    "pandas>=2.2.3",
+    "openpyxl>=3.1",
+    "pypdf>=5.0",
+    "rapidfuzz>=3.10",
+    "python-dateutil>=2.9",
+    "python-dotenv>=1.0",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "fpdf2>=2.8"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["browser: tests that drive a real Chromium against the mock portals"]

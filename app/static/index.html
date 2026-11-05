@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HextGen Automation Suite</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d7a6f'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="logo">✚</div>HextGen Automation Suite <small>ClaimPilot · Receivables · Onboarding Copilot</small></div>
+  <div class="top-status" id="topStatus"></div>
+</header>
+
+<div class="layout">
+  <nav class="side" id="nav">
+    <div class="sect">Insurance / TPA</div>
+    <button data-view="command" class="active">📋 Claims command center</button>
+    <button data-view="bots">🤖 Portal bots &amp; OTP</button>
+    <button data-view="intake">🧾 AI pre-auth intake</button>
+    <button data-view="drafts">✉️ Correspondence</button>
+    <div class="sect">Revenue cycle</div>
+    <button data-view="receivables">💰 Receivables &amp; WhatsApp</button>
+    <div class="sect">Hospital onboarding</div>
+    <button data-view="onboarding">🚀 Onboarding copilot</button>
+    <div class="jd">Built for the HextGen AI Automation Intern role: onboarding automation · AI layer on Gemini 2.5 Flash · cross-application RPA.</div>
+  </nav>
+
+  <main>
+    <!-- ============================================================ COMMAND CENTER -->
+    <section class="view active" id="view-command">
+      <h1>Claims command center</h1>
+      <p class="sub">Every cashless claim across every TPA portal in one queue, normalised to one lifecycle, with IRDAI turnaround clocks
+        (1&nbsp;h cashless decision, 3&nbsp;h discharge authorisation) and the hospital's own 2&nbsp;h target for answering queries.</p>
+      <div class="grid g-kpi" id="kpis"></div>
+      <div class="grid g-main">
+        <div class="card flush">
+          <div class="row" style="padding:14px 16px 4px"><h2 style="margin:0">Claims</h2><span class="spacer"></span>
+            <button class="btn sm" onclick="startSync()">⟳ Sync all portals</button></div>
+          <div class="scroll"><table id="claimsTable"></table></div>
+        </div>
+        <div class="card flush">
+          <div class="row" style="padding:14px 16px 8px"><h2 style="margin:0">Alerts</h2><span class="spacer"></span><span class="chip" id="alertCount"></span></div>
+          <div class="alerts-list" id="alerts"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ BOTS -->
+    <section class="view" id="view-bots">
+      <h1>Portal bots &amp; OTP</h1>
+      <p class="sub">Headless Playwright bots log into each TPA / insurer portal, read claim status and query letters, and write them to MongoDB.
+        The three demo portals are deliberately different: pagination + session expiry, SMS-OTP + search-only, and randomised field names + flaky JS API.</p>
+      <div id="otpQueue"></div>
+      <div class="grid g-2">
+        <div class="card">
+          <h2>Run bots</h2>
+          <div class="row">
+            <button class="btn primary" onclick="startSync()">⟳ Sync all portals</button>
+            <button class="btn" onclick="startSync(['nimbus'])">Nimbus TPA</button>
+            <button class="btn" onclick="startSync(['orbit'])">Orbit (OTP)</button>
+            <button class="btn" onclick="startSync(['lotus'])">Lotus (flaky)</button>
+            <span id="syncState" class="muted small"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Simulator <span class="muted small">(what the TPAs do)</span></h2>
+          <div class="row">
+            <button class="btn" onclick="simAdvance()">▶ Advance TPA activity</button>
+            <select id="otpMode" style="width:auto" onchange="simConfig()">
+              <option value="auto">OTP via SMS forwarder (auto)</option>
+              <option value="manual">OTP only on desk phone (human)</option>
+            </select>
+            <label class="small">503 rate <input type="number" id="flaky" min="0" max="0.9" step="0.1" value="0.3" style="width:70px" onchange="simConfig()"></label>
+            <button class="btn" onclick="api('/api/sim/expire-sessions',{method:'POST'}).then(()=>toast('All portal sessions expired'))">Expire sessions</button>
+            <button class="btn danger" onclick="simReset()">Reset demo</button>
+            <a href="#" id="phoneLink" target="_blank" class="small">📱 desk phone</a>
+          </div>
+        </div>
+      </div>
+      <h2 style="margin-top:20px">Run history <span class="muted small">(every step is audited)</span></h2>
+      <div id="runs" class="grid"></div>
+    </section>
+
+    <!-- ============================================================ INTAKE -->
+    <section class="view" id="view-intake">
+      <h1>AI pre-auth intake</h1>
+      <p class="sub">Drop the admission note / case sheet / ID / e-card. Gemini 2.5 Flash extracts the pre-auth fields; every value is then
+        <b>checked against the source document</b> (grounding) and the claim is screened for the queries a TPA would raise, before it is submitted.</p>
+      <div class="grid g-2">
+        <div class="card">
+          <div class="drop" id="drop">Drop PDFs / images / text here, or click to choose<input type="file" id="fileIn" multiple hidden></div>
+          <div class="row" style="margin-top:10px"><span class="small muted">or try a sample:</span>
+            <select id="sampleSel" style="width:auto"></select><button class="btn sm" onclick="extractSample()">Extract</button></div>
+          <div class="row" style="margin-top:10px">
+            <label class="small">Stage <select id="stageSel" style="width:auto"><option value="preauth">Pre-auth</option><option value="discharge">Discharge</option></select></label>
+            <label class="small">Sum insured ₹ <input type="number" id="siIn" style="width:120px" placeholder="optional"></label>
+          </div>
+        </div>
+        <div class="card" id="compCard"><h2>Query-risk screen</h2><div class="empty">Run an extraction to see what the TPA would ask.</div></div>
+      </div>
+      <div class="card" id="extractCard" style="margin-top:16px;display:none"></div>
+    </section>
+
+    <!-- ============================================================ DRAFTS -->
+    <section class="view" id="view-drafts">
+      <h1>Correspondence</h1>
+      <p class="sub">TPA query replies and SLA escalations, drafted automatically. A safety gate blocks any draft that asserts a clinical fact,
+        amount or enclosure not present in the record; unknowns become <span class="ph">[[placeholders]]</span> that must be filled before sending.</p>
+      <div class="grid g-main">
+        <div class="card" id="draftView"><div class="empty">Select a draft.</div></div>
+        <div class="card flush"><h2>Drafts</h2><div id="draftList"></div></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ RECEIVABLES -->
+    <section class="view" id="view-receivables">
+      <h1>Receivables &amp; daily WhatsApp summary</h1>
+      <p class="sub">Money owed to the hospital by every payer, grouped by how long it has been unpaid, with deductions and denials.
+        The owner gets it as a WhatsApp summary every morning instead of finding out at month-end.</p>
+      <div class="banner"><b>Where each number comes from.</b> Private TPA claims update on their own: the portal bots pick them up at discharge.
+        <b>Aarogyasri, EHS and PM-JAY don't.</b> The bots do not log into those government portals, so their claims come from the
+        CSV export the billing desk uploads, or from manual entry. Each payer shows when its data was last refreshed, and the WhatsApp summary
+        warns when a payer's figures are stale.</div>
+      <div class="grid g-kpi" id="rcvKpis"></div>
+        <div class="card flush">
+          <div class="row" style="padding:14px 16px 4px"><h2 style="margin:0">Aging by payer</h2><span class="spacer"></span>
+            <span class="small muted">days since claim submission · darker cell = more money</span>
+            <a class="btn sm" href="/api/receivables/aging.csv">⬇ Aging CSV</a></div>
+          <div class="scroll"><table id="agingTable"></table></div>
+          <div class="grid g-2" style="padding:16px;gap:20px"><div id="dedReasons"></div><div id="denReasons"></div></div>
+        </div>
+      <div class="grid g-2" style="margin-top:16px">
+        <div class="card" id="waCard"><h2>WhatsApp summary</h2><div class="empty">Loading…</div></div>
+        <div class="grid">
+        <div class="card">
+          <h2>Upload a payer export</h2>
+          <div class="row" style="margin-bottom:10px"><label class="small">Payer
+            <select id="rcvPayer" style="width:auto"><option value="auto">Detect from file</option><option value="aarogyasri">Aarogyasri</option>
+              <option value="ehs">EHS</option><option value="pmjay">PM-JAY</option><option value="private_tpa">Private TPA (HMS billing)</option></select></label></div>
+          <div class="drop" id="rcvDrop">Drop the claim-status CSV / XLSX exported from the payer portal<input type="file" id="rcvIn" multiple hidden></div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" onclick="rcvSampleToday()">Upload today's sample Aarogyasri export</button>
+            <span class="small muted">(3 claims paid, 1 denied, 1 new deduction, 1 new claim)</span></div>
+          <div id="rcvImport" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <h2>Manual entry</h2>
+          <p class="small muted" style="margin-top:-6px">For a claim read off a portal screen. A single manual entry does not mark the payer's figures as refreshed.</p>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px" id="rcvForm">
+            <div><label class="f">Payer</label><select name="payer_type"><option value="aarogyasri">Aarogyasri</option><option value="ehs">EHS</option>
+              <option value="pmjay">PM-JAY</option><option value="private_tpa">Private TPA</option></select></div>
+            <div><label class="f">Claim / case no.</label><input type="text" name="claim_ref"></div>
+            <div><label class="f">Patient</label><input type="text" name="patient_name"></div>
+            <div><label class="f">Claim amount ₹</label><input type="number" name="billed" min="0"></div>
+            <div><label class="f">Approved ₹</label><input type="number" name="approved" min="0"></div>
+            <div><label class="f">Paid ₹</label><input type="number" name="paid" min="0"></div>
+            <div><label class="f">Status</label><select name="status"><option value="PENDING">Pending</option><option value="QUERY">Query raised</option>
+              <option value="APPROVED">Approved, unpaid</option><option value="PART_PAID">Part paid</option><option value="PAID">Paid</option><option value="DENIED">Denied</option></select></div>
+            <div><label class="f">Submitted on</label><input type="date" name="submitted_on"></div>
+            <div style="grid-column:1/-1"><label class="f">Deduction / denial / query remarks</label><input type="text" name="remarks"></div>
+          </div>
+          <div class="row end" style="margin-top:10px"><button class="btn primary" onclick="rcvManual()">Save claim</button></div>
+        </div>
+        </div>
+      </div>
+      <div class="card flush" style="margin-top:16px">
+        <div class="row" style="padding:14px 16px 4px"><h2 style="margin:0">Claims</h2><span class="spacer"></span>
+          <select id="rcvFilter" style="width:auto" onchange="loadRcvList()"><option value="">All payers</option><option value="private_tpa">Private TPAs</option>
+            <option value="aarogyasri">Aarogyasri</option><option value="ehs">EHS</option><option value="pmjay">PM-JAY</option></select>
+          <label class="small"><input type="checkbox" id="rcvOpen" checked onchange="loadRcvList()"> unpaid only</label></div>
+        <div class="scroll"><table id="rcvTable"></table></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ ONBOARDING -->
+    <section class="view" id="view-onboarding">
+      <h1>Onboarding copilot</h1>
+      <p class="sub">Legacy exports in, import-ready masters out. Detects what each file is, maps messy columns, normalises Indian formats
+        (dd/mm, MM/YY expiry, +91 phones, ₹ amounts), validates against GST / clinical rules, scores go-live readiness against the deadline,
+        and drafts the fix-list message to the hospital.</p>
+      <div class="grid g-2">
+        <div class="card">
+          <h2>1 · Files</h2>
+          <div class="drop" id="obDrop">Drop CSV / XLSX exports (drug master, staff, lab, tariff, patients)<input type="file" id="obIn" multiple hidden></div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" onclick="runOnboardingSample()">Run with sample legacy files</button>
+            <span class="small muted">(Marg pharmacy export, staff CSV, lab rate list, tariff XLSX)</span></div>
+        </div>
+        <div class="card"><h2>2 · Hospital setup profile</h2><textarea id="obProfile" style="min-height:170px"></textarea></div>
+      </div>
+      <div id="obResult" style="margin-top:16px"></div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer-bg" id="drawerBg" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer"></aside>
+<div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>

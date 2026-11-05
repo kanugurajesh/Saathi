@@ -1,0 +1,9 @@
+Claim ID,Beneficiary Name,PMJAY ID,Package Name,Claim Initiated Date,Claim Amount,Approved Amount,Paid Amount,Payment Date,Claim Status,Rejection/Deduction Reason
+PMJ-TS-2605118,Gangamma Boda,PMJ-TSN-88120771,Acute febrile illness - medical management,18-Apr-2026,18000,18000,,,Claim Approved,
+PMJ-TS-2605211,Raju Lavudya,PMJ-TSN-55120934,Snake bite with ventilator support,30-May-2026,64000,58000,,,Claim Approved,Ventilator days capped as per package
+PMJ-TS-2606034,Sarita Bhukya,PMJ-TSN-70318826,Caesarean delivery,09-Jul-2026,18000,,,,Pending at CPD,
+PMJ-TS-2607109,Mohan Kunta,PMJ-TSN-91022745,Burns management (moderate),21-Jul-2026,90000,,,,Query Raised by CPD,Serial photographs of burn wound not uploaded
+PMJ-TS-2608210,Bhavani Jatoth,PMJ-TSN-62019458,Pneumonia - medical management,14-Aug-2026,22000,22000,22000,30-Oct-2026,Claim Paid,
+PMJ-TS-2609102,Ilaiah Gudem,PMJ-TSN-40817763,Laparoscopic cholecystectomy,05-Sep-2026,40000,,,,Claim Under Process,
+PMJ-TS-2610045,Rajitha Malothu,PMJ-TSN-33901287,ORIF - both bones forearm,13-Oct-2026,45000,,,,Claim Submitted,
+PMJ-TS-2604090,Chandraiah Eslavath,PMJ-TSN-12098346,Ischaemic stroke - thrombolysis,02-Apr-2026,52000,0,,,Claim Rejected,Claim submitted beyond 15 days of discharge
