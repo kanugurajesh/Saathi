@@ -48,6 +48,10 @@ class Settings:
     # --- HMS integration: claim events pushed to the hospital's HMS (e.g. HextGen IPD billing) ---
     hms_webhook_url: str = os.getenv("HMS_WEBHOOK_URL", "")  # blank = events only recorded in hms_outbox
     hms_webhook_secret: str = os.getenv("HMS_WEBHOOK_SECRET", "")  # HMAC-SHA256 signing key
+    hms_demo_url: str = os.getenv("HMS_DEMO_URL", "")  # demo receiver's page, proxied at /demo/hms (deploy/start.sh sets it)
+
+    # --- hosted demo: optional HTTP Basic password on everything except /api/health ---
+    demo_password: str = os.getenv("DEMO_PASSWORD", "")
 
     # --- receivables + daily WhatsApp summary (Meta WhatsApp Cloud API; blank token = dry run to outbox) ---
     hospital_name: str = os.getenv("HOSPITAL_NAME", "Godavari Demo Multispeciality Hospital, Nalgonda")

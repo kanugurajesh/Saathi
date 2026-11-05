@@ -1,0 +1,27 @@
+# Render Blueprint: one Docker web service runs the whole demo (app + fictional TPA portals + demo HMS receiver).
+# Deploy: Render dashboard → New → Blueprint → pick this repo. See "Deploy on Render" in the README.
+services:
+  - type: web
+    name: claimpilot-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # 512 MB. If a sync gets killed for memory, switch to a plan with more RAM.
+    region: singapore     # closest Render region to India
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Protects the public URL (any username). Strongly recommended if you set GEMINI_API_KEY.
+      - key: DEMO_PASSWORD
+        sync: false
+      # Optional: Gemini 2.5 Flash. Leave blank to run on the deterministic engine.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Optional: e.g. a MongoDB Atlas free cluster. Blank = in-memory store, reset on every restart.
+      - key: MONGODB_URI
+        sync: false
+      - key: HMS_WEBHOOK_SECRET
+        generateValue: true
+      - key: OTP_HUMAN_WAIT_S
+        value: "120"
+      - key: LLM_RETRY_BUDGET_S
+        value: "15"

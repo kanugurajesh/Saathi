@@ -11,8 +11,8 @@ from pathlib import Path
 
 import httpx
 from bson import ObjectId
-from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
@@ -62,6 +62,26 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="HextGen Automation Suite - ClaimPilot + Onboarding Copilot + Receivables", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def demo_password_gate(request: Request, call_next):
+    """Hosted demo: when DEMO_PASSWORD is set, every page and API needs it (any username).
+    /api/health stays open for the platform's health check."""
+    if settings.demo_password and request.url.path != "/api/health":
+        import base64
+        import secrets
+
+        pw = ""
+        auth = request.headers.get("authorization", "")
+        if auth.startswith("Basic "):
+            try:
+                pw = base64.b64decode(auth[6:]).decode().partition(":")[2]
+            except (ValueError, UnicodeDecodeError):
+                pw = ""
+        if not secrets.compare_digest(pw.encode(), settings.demo_password.encode()):
+            return Response("Password required", status_code=401, headers={"WWW-Authenticate": 'Basic realm="ClaimPilot demo"'})
+    return await call_next(request)
+
+
 def _oid(s: str) -> ObjectId:
     try:
         return ObjectId(s)
@@ -79,6 +99,7 @@ def health():
     except httpx.HTTPError:
         portals_up = False
     return {"db": dbmod.backend, "llm": llm.engine_info(), "portal_base_url": settings.portal_base_url,
+            "phone_url": "/demo/phone", "hms_demo": bool(settings.hms_demo_url),
             "mock_portals_up": portals_up, "sync_running": runner.is_running(),
             "sla_minutes": {"preauth": settings.sla_preauth_min, "discharge": settings.sla_discharge_min,
                             "query_reply": settings.sla_query_reply_min}}
@@ -257,6 +278,28 @@ def sms_inbound(payload: dict = Body(...)):
     """Webhook for an SMS-forwarder app / SMS gateway on the TPA desk phone."""
     get_db().sms_inbox.insert_one({"phone": payload["phone"][-10:], "text": payload["text"], "received_ts": time.time(), "at": now()})
     return {"ok": True}
+
+
+def _proxy_page(url: str) -> HTMLResponse:
+    try:
+        r = httpx.get(url, timeout=5)
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, f"not reachable: {url}") from exc
+    return HTMLResponse(r.text, status_code=r.status_code)
+
+
+@app.get("/demo/phone", response_class=HTMLResponse)
+def demo_phone():
+    """The simulated TPA desk phone, served through the app so it works when the portals are only on localhost."""
+    return _proxy_page(f"{settings.portal_base_url}/dev/phone")
+
+
+@app.get("/demo/hms", response_class=HTMLResponse)
+def demo_hms():
+    """The demo HMS receiver's live event page (integrations/hms-node), proxied the same way."""
+    if not settings.hms_demo_url:
+        raise HTTPException(404, "HMS demo receiver not running")
+    return _proxy_page(f"{settings.hms_demo_url}/")
 
 
 def _mock(path: str, payload: dict | None = None):

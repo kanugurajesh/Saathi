@@ -9,6 +9,7 @@ import { createServer } from "node:http";
 
 const SECRET = process.env.HMS_WEBHOOK_SECRET || "";
 const PORT = Number(process.env.PORT || 8300);
+const HOST = process.env.HOST || "127.0.0.1"; // the hosted demo reaches it through the app's /demo/hms proxy
 const seen = new Set(); // use a unique index on event_id in MongoDB in production
 
 export function verify(rawBody, header, secret = SECRET) {
@@ -79,5 +80,5 @@ if (process.argv[1]?.endsWith("webhook-receiver.js")) {
       console.log(line);
       res.writeHead(204).end();
     });
-  }).listen(PORT, () => console.log(`HMS webhook receiver on http://127.0.0.1:${PORT}/claimpilot (signing ${SECRET ? "on" : "off"})`));
+  }).listen(PORT, HOST, () => console.log(`HMS webhook receiver on http://${HOST}:${PORT}/claimpilot (signing ${SECRET ? "on" : "off"})`));
 }

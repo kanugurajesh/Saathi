@@ -1,0 +1,14 @@
+# secrets and local state
+.env
+.venv/
+.git/
+runs/
+prep/
+.pytest_cache/
+.playwright-mcp/
+**/__pycache__/
+**/*.pyc
+# large media only the README needs
+docs/demo.mp4
+docs/demo_preview.gif
+docs/screenshots/

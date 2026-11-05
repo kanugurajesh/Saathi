@@ -265,7 +265,7 @@ def run(d: Demo) -> None:
     # ---------------------------------------------------------------- 9. close
     d.card("""<h1 style="font-size:40px;margin:0 0 22px">What's real, what's mocked</h1>
       <div style="font-size:21px;line-height:1.75">
-      ✅ Bot engine, OTP fallback, status normalisation, safety gate, HMS webhooks: built and tested (48 + 3 tests)<br>
+      ✅ Bot engine, OTP fallback, status normalisation, safety gate, HMS webhooks: built and tested (50 + 3 tests)<br>
       ✅ Gemini 2.5 Flash extraction: run live, 0% hallucination on the gold set<br>
       🧪 The three TPA portals are fictional mocks of real failure patterns<br>
       🔜 Next: validate with a hospital TPA desk, then point an adapter at a real portal</div>

@@ -47,7 +47,8 @@ async function loadHealth() {
   $("#topStatus").innerHTML = llm + `<span class="pill ok"><span class="dot"></span>${esc(h.db)}</span>` +
     `<span class="pill ${h.mock_portals_up ? "ok" : "bad"}"><span class="dot"></span>TPA portals ${h.mock_portals_up ? "reachable" : "offline"}</span>` +
     (h.sync_running ? `<span class="pill warn"><span class="spin"></span>bots running</span>` : "");
-  $("#phoneLink").href = h.portal_base_url + "/dev/phone";
+  $("#phoneLink").href = h.phone_url;
+  $("#hmsLink").style.display = h.hms_demo ? "" : "none";
 }
 
 /* ------------------------------------------------------------------ command center */
@@ -129,7 +130,7 @@ async function loadBots() {
       <span class="muted small">sent to ${esc(o.phone_masked)} · expires ${time(o.expires_at)}</span></div>
       <div class="row" style="margin-top:8px"><input id="otp-${esc(o._id)}" maxlength="6" placeholder="••••••" inputmode="numeric">
       <button class="btn primary" onclick="sendOtp('${esc(o._id)}')">Submit OTP</button><button class="btn" onclick="skipOtp('${esc(o._id)}')">Skip → manual review</button>
-      <a class="small" target="_blank" href="${esc(state.health?.portal_base_url)}/dev/phone">open desk phone</a></div></div>`).join("");
+      <a class="small" target="_blank" href="${esc(state.health?.phone_url || "/demo/phone")}">open desk phone</a></div></div>`).join("");
     if (otps.length) $("#otp-" + otps[0]._id)?.focus(); }
   $("#runs").innerHTML = st.runs.map((r) => {
     const cls = r.status === "success" ? "ok" : r.status === "running" ? "info" : r.status === "needs_manual_review" ? "warn" : "bad";

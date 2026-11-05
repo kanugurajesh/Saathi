@@ -88,6 +88,29 @@ Gemini). It writes `prep/demo.mp4`; copy that over `docs/demo.mp4` to update the
 
 Real MongoDB: set `MONGODB_URI=mongodb://localhost:27017`, or run `docker compose up` for MongoDB, portals and app together.
 
+### Deploy on Render (one free web service)
+
+The repo includes a Render Blueprint ([`render.yaml`](render.yaml)). One Docker container runs everything:
+the app on Render's public port, and the fictional TPA portals and the demo HMS receiver beside it on localhost
+([`deploy/start.sh`](deploy/start.sh)). The browser reaches their pages through the app: `/demo/phone` for the
+desk phone and `/demo/hms` for the HMS webhook view (also linked in the sidebar).
+
+1. Push this repo to GitHub (a private repo is fine).
+2. In Render: **New → Blueprint**, connect the repo, and Render reads `render.yaml`.
+3. Fill in the prompted variables:
+   * `DEMO_PASSWORD`: **set this.** The URL is public. Every page then asks for it (any username); `/api/health` stays open for Render's health check.
+   * `GEMINI_API_KEY`: optional. Blank runs the deterministic engine. Don't set a key without a password.
+   * `MONGODB_URI`: optional, e.g. a MongoDB Atlas free cluster. Blank uses the in-memory store.
+4. **Apply.** The first build takes about 5–8 minutes. The app is then at `https://claimpilot-demo.onrender.com` (or a suffixed name if that's taken).
+
+What to expect on the free plan:
+* **Memory:** tested in Docker with a 512 MB cap (the free plan's limit). Idle is about 160 MB; a full three-portal sync peaks at about 310 MB.
+* **Sleep:** the service sleeps after 15 minutes without traffic. The next visit takes about a minute to wake it.
+* **Fresh demo on every start:** without `MONGODB_URI`, the store is in memory, so each restart re-seeds the demo claims. That suits a demo.
+* **Not for real patient data.** This deployment holds synthetic data only.
+
+The same image runs anywhere Docker does: `docker build -t claimpilot . && docker run -p 8000:8000 -e DEMO_PASSWORD=... claimpilot`.
+
 ### 5-minute demo script
 
 1. **Command center**: 9 seeded claims. Two are already past the IRDAI 1-hour clock, and escalation emails are pre-drafted.
@@ -319,7 +342,7 @@ real phone. The scheduled send runs once per IST day. A failed send raises a das
 ## Evals and tests
 
 ```bash
-uv run pytest                          # 48 tests, including 6 that drive real Chromium against the portals
+uv run pytest                          # 50 tests, including 6 that drive real Chromium against the portals
 (cd integrations/hms-node && node --test)   # 3 tests for the Node.js HMS-side reference
 uv run python -m evals.run_evals       # writes evals/report_<engine>.md
 ```

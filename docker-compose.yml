@@ -6,15 +6,18 @@ services:
 
   portals:  # fictional TPA portals for the bots to drive
     build: .
-    command: ["uv", "run", "uvicorn", "mock_portals.server:app", "--host", "0.0.0.0", "--port", "8100"]
+    command: ["python", "-m", "uvicorn", "mock_portals.server:app", "--host", "0.0.0.0", "--port", "8100"]
     ports: ["8100:8100"]
 
-  app:
+  app:  # deploy/start.sh: app on :8000 + the demo HMS receiver on localhost
     build: .
-    env_file: [.env]
+    env_file:
+      - path: .env
+        required: false
     environment:
       MONGODB_URI: mongodb://mongo:27017
       PORTAL_BASE_URL: http://portals:8100
+      PORT: "8000"
     ports: ["8000:8000"]
     depends_on: [mongo, portals]
 
