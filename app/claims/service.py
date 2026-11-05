@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from pymongo import ReturnDocument
 
+from .. import hms_webhook
 from ..alerts import raise_alert, resolve_alerts
 from ..db import clean, get_db, now
 from . import completeness, drafting
@@ -35,11 +36,15 @@ def next_claim_id() -> str:
 
 def create_claim(*, fields: dict, documents: list[str], portal: str | None, portal_ref: str | None,
                  hospital: str, tpa_name: str | None = None, sum_insured: int | None = None, stage: str = "preauth",
-                 status: str = Status.DRAFT, status_since: datetime | None = None) -> dict:
+                 status: str = Status.DRAFT, status_since: datetime | None = None, hms_ref: str | None = None) -> dict:
+    """hms_ref links the claim to the HMS record (e.g. the IP admission number). Creating a claim with an
+    hms_ref that already exists returns the existing claim, so the HMS can safely retry its call."""
     db = get_db()
+    if hms_ref and (existing := db.claims.find_one({"hms_ref": hms_ref})):
+        return existing
     ts = now()
     doc = {
-        "_id": next_claim_id(), "fields": fields, "documents": sorted(set(documents)), "portal": portal,
+        "_id": next_claim_id(), "hms_ref": hms_ref, "fields": fields, "documents": sorted(set(documents)), "portal": portal,
         "portal_ref": portal_ref, "hospital": hospital, "tpa_name": tpa_name or fields.get("tpa"),
         "sum_insured": sum_insured, "stage": stage, "status": str(status), "status_raw": None,
         "status_since": status_since or ts, "requested_amount": fields.get("estimated_cost"),
@@ -53,6 +58,7 @@ def create_claim(*, fields: dict, documents: list[str], portal: str | None, port
 
 def _event(claim_id: str, kind: str, data: dict) -> None:
     get_db().claim_events.insert_one({"claim_id": claim_id, "kind": kind, "data": data, "at": now()})
+    hms_webhook.emit(claim_id, kind, data)
 
 
 def add_documents(claim_id: str, doc_types: list[str]) -> dict | None:

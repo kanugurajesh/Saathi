@@ -1,0 +1,12 @@
+{
+  "name": "claimpilot-hms-node",
+  "private": true,
+  "description": "Reference HMS-side integration for ClaimPilot: create claims from IP admissions, receive signed claim events.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "receiver": "node webhook-receiver.js",
+    "client": "node claimpilot-client.js",
+    "test": "node --test"
+  }
+}

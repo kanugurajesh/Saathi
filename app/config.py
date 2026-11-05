@@ -45,6 +45,10 @@ class Settings:
     # --- alerts ---
     alert_webhook_url: str = os.getenv("ALERT_WEBHOOK_URL", "")  # Slack / Google Chat compatible
 
+    # --- HMS integration: claim events pushed to the hospital's HMS (e.g. HextGen IPD billing) ---
+    hms_webhook_url: str = os.getenv("HMS_WEBHOOK_URL", "")  # blank = events only recorded in hms_outbox
+    hms_webhook_secret: str = os.getenv("HMS_WEBHOOK_SECRET", "")  # HMAC-SHA256 signing key
+
     # --- receivables + daily WhatsApp summary (Meta WhatsApp Cloud API; blank token = dry run to outbox) ---
     hospital_name: str = os.getenv("HOSPITAL_NAME", "Godavari Demo Multispeciality Hospital, Nalgonda")
     dashboard_url: str = os.getenv("DASHBOARD_URL", "http://127.0.0.1:8000/#receivables")

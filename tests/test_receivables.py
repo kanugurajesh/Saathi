@@ -157,9 +157,12 @@ def test_cloud_api_payload_and_failure_alert(fresh_db, monkeypatch):
             set_setting(k, "")
 
 
-def test_receivables_api(fresh_db):
+def test_receivables_api(fresh_db, monkeypatch):
+    import scripts.seed
     from app.main import app
 
+    # Seeding shifts sample dates to "today"; pin the shift so re-importing the raw file is a true no-op on any date.
+    monkeypatch.setattr(scripts.seed, "sample_shift_days", lambda: 0)
     with TestClient(app) as cl:
         s = cl.get("/api/receivables/summary").json()
         assert s["totals"]["outstanding"] == 2182100

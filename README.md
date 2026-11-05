@@ -3,13 +3,26 @@
 > A working prototype built for the **AI Automation Intern** role at HextGen AI MedTech.
 > It covers all three responsibilities in the job description in one runnable system:
 > **hospital onboarding automation**, an **AI layer on Gemini 2.5 Flash**, and **cross-application RPA** for insurance/TPA claims.
+> It also shows how it would plug into an HMS's IPD module: a REST call in, signed webhooks out, with a Node.js reference client.
+
+## ▶ Demo (2:48)
+
+[![Demo preview: click for the full video](docs/demo_preview.gif)](docs/demo.mp4)
+
+*Above: the whole demo at 4× speed. **[Watch the full-speed captioned video (MP4, 2:48)](docs/demo.mp4)**.*
+It shows the bots syncing three portals, signed events reaching the HMS, a human typing the OTP, a drafted TPA reply that
+can't be sent with placeholders, AI intake, receivables and onboarding. In this recording the AI steps run on the
+rules engine; the Gemini 2.5 Flash results are in [Evals and tests](#evals-and-tests).
+
+**Read first:** [What's real and what's mocked](#whats-real-and-whats-mocked) · [Integration with the HMS](#integration-with-the-hms)
 
 ![Claims command center](docs/screenshots/01_command_center.png)
 
 ## Why this project
 
-HextGen's product pages list *"Insurance & TPA management"* and a sub-24-hour onboarding target. Behind both sit the
-same kinds of manual work at every hospital:
+HextGen's Hospitals plan lists *"Insurance claims and TPA support"* and IPD billing *"with insurance and packages"*.
+The AI Automation Intern posting asks for onboarding a hospital in under 24 hours and an insurance claims automation
+pipeline. Behind both sit the same kinds of manual work at every hospital:
 
 * **The TPA desk** logs into 5-10 insurer/TPA portals a day. Each portal has a different layout, an OTP on someone's
   phone, and a different word for "query raised". Staff copy statuses into a register and answer the same predictable
@@ -60,7 +73,7 @@ engine produced each output. To switch on Gemini 2.5 Flash:
 
 ```bash
 cp .env.example .env
-# Vertex AI (HextGen's stack):  GOOGLE_GENAI_USE_VERTEXAI=true  GOOGLE_CLOUD_PROJECT=<project>
+# Vertex AI (the stack named in the job posting):  GOOGLE_GENAI_USE_VERTEXAI=true  GOOGLE_CLOUD_PROJECT=<project>
 #   and run: gcloud auth application-default login
 # or AI Studio:                 GEMINI_API_KEY=<key>
 ```
@@ -69,6 +82,9 @@ Transient Gemini errors (429 quota, 5xx overload) are retried using the delay th
 `LLM_RETRY_BUDGET_S` (default 30 s, so the dashboard never hangs). If the budget runs out, the feature falls back to the
 deterministic engine. The AI Studio free tier allows 5 requests a minute and 20 a day per model, and one eval run makes
 11 calls.
+
+Re-record the captioned demo video: `uv run python -m scripts.record_demo` (add `--gemini` to run the AI steps on
+Gemini). It writes `prep/demo.mp4`; copy that over `docs/demo.mp4` to update the video linked at the top.
 
 Real MongoDB: set `MONGODB_URI=mongodb://localhost:27017`, or run `docker compose up` for MongoDB, portals and app together.
 
@@ -119,6 +135,87 @@ flowchart LR
   E & C & RD & S --> M[(MongoDB<br/>claims · claim_events · drafts<br/>portal_runs · otp_requests · alerts)]
   M --> UI[Dashboard] & W[Webhook alerts<br/>Slack / Chat]
 ```
+
+## What's real and what's mocked
+
+A reviewer should know exactly what this prototype proves and what it doesn't.
+
+| Part | Status |
+|---|---|
+| **TPA portals** (Nimbus, Orbit, Lotus) | **Mocked.** Fictional portals I built to reproduce the failure patterns real portals have: OTP on a desk phone, pagination, session expiry, randomised field names, JS-rendered tables, random 503s. **No real TPA portal (Medi Assist, FHPL, Paramount, Vidal, etc.) has been driven.** Real portals add captchas, terms-of-use limits and layouts I haven't seen. Each real portal is one new adapter in `app/portals/`. |
+| **Government schemes** (Aarogyasri, EHS, PM-JAY) | **Not scraped, by design.** Claims come in via the CSV export the billing desk already downloads. The export column layouts are **assumed** and need checking against real exports. |
+| **Bot engine** (retries, OTP fallback chain, failure taxonomy, idempotent sync, status normalisation) | **Real and tested.** 6 tests drive real Chromium against the mock portals. |
+| **Gemini 2.5 Flash extraction** | **Real.** Run live against `gemini-2.5-flash`. The 6 gold documents are synthetic, so this is a small-sample signal, not a benchmark. |
+| **Safety gate, grounding check, completeness rules** | **Real and tested.** The TPA query rules come from public TPA and IRDAI material and haven't yet been checked with a hospital TPA desk. That check is planned: [`docs/field_validation.md`](docs/field_validation.md). |
+| **Onboarding Copilot** | **Real logic, assumed targets.** Column mapping, validation and readiness scoring work. The target schemas in `onboarding/schemas.py` are my guess at an HMS import format, not HextGen's real one. |
+| **HMS integration** (REST in, signed webhook out) | **Real and tested** against the Node.js reference receiver in `integrations/hms-node/`. The admission payload shape is illustrative. HextGen's real IPD data model would replace it. |
+| **WhatsApp Cloud API** | Mocked HTTP test only. Not yet sent to a real number, and the template hasn't been through Meta's approval. |
+| **MongoDB** | Developed on mongomock. Not yet run against a real MongoDB server. |
+| **Data** | Every hospital, patient, insurer, TPA, policy and case number is fictional. |
+
+## Integration with the HMS
+
+ClaimPilot is built to sit **beside** an HMS, not replace any of it. The HMS stays the system of record for the
+admission and the bill. ClaimPilot owns the portal work and tells the HMS what changed.
+
+```mermaid
+sequenceDiagram
+  participant HMS as HMS (IPD module)
+  participant CP as ClaimPilot
+  participant TPA as TPA portal
+  HMS->>CP: POST /api/claims {hms_ref: IP number, fields, portal}
+  CP-->>HMS: claim + completeness score + predicted TPA queries
+  Note over CP: desk fixes blockers, submits pre-auth
+  loop every sync
+    CP->>TPA: Playwright bot: login, OTP, read status
+    TPA-->>CP: raw status ("PA-DEF", "Information Required"...)
+    CP->>CP: normalise, diff, draft reply, SLA clocks
+    CP->>HMS: POST webhook (signed) status_changed
+    HMS->>HMS: update IP bill: approved limit / query flag / self-pay
+  end
+```
+
+**Into ClaimPilot** (what the IPD module calls when an insured patient is admitted):
+
+| Call | Purpose |
+|---|---|
+| `POST /api/claims` with `hms_ref` | Create the claim from the admission. `hms_ref` (e.g. the IP number) is an idempotency key: a retried call returns the same claim. Returns the completeness score, blockers and the TPA queries the claim is likely to get. |
+| `GET /api/claims/by-hms/{hms_ref}` | Look a claim up by the HMS's own reference. |
+| `POST /api/claims/{id}/documents` | Tell ClaimPilot a document was uploaded in the HMS (re-scores completeness). |
+| `POST /api/extract` | Optional: send the case sheet and get the 24 pre-auth fields back, with grounding flags. |
+
+**Out of ClaimPilot** (`app/hms_webhook.py`): every claim event (`created`, `status_changed`, `documents_added`,
+`correspondence_sent`) is POSTed to `HMS_WEBHOOK_URL`:
+
+```json
+{"event_id": "6729f1...", "kind": "status_changed", "claim_id": "HX-CLM-0002", "hms_ref": "IP-2026-00451",
+ "status": "PARTIALLY_APPROVED", "approved_amount": 45000,
+ "data": {"from": "PREAUTH_SUBMITTED", "to": "PARTIALLY_APPROVED", "raw": "Partially Approved", "portal": "nimbus"},
+ "at": "2026-11-05T04:24:51+00:00"}
+```
+
+* **Signed:** `X-ClaimPilot-Signature: sha256=<HMAC of the raw body with HMS_WEBHOOK_SECRET>`.
+* **Durable:** every event is written to the `hms_outbox` collection first. A failed delivery is retried with
+  exponential backoff (30 s up to 1 h, 8 attempts), and `GET /api/hms/outbox?undelivered=true` shows what's stuck.
+* **Ordered per claim:** while an older event for a claim is undelivered, newer ones for that claim wait, so the
+  HMS never sees "approved" before "query raised".
+* **Idempotent:** the receiver dedupes on `event_id`.
+
+**Node.js reference** ([`integrations/hms-node/`](integrations/hms-node/)), with no dependencies, since an HMS team on a
+MERN stack would own this side:
+* `claimpilot-client.js`: maps an IP admission to a claim and calls the API.
+* `webhook-receiver.js`: verifies the signature with `timingSafeEqual`, dedupes, and maps each status to an IPD
+  billing action, for example `DENIED` → *switch the bill to self-pay / reimbursement*.
+
+```bash
+# terminal 3: HMS side
+cd integrations/hms-node && HMS_WEBHOOK_SECRET=s3cret node webhook-receiver.js
+# start the app with: HMS_WEBHOOK_URL=http://127.0.0.1:8300/claimpilot HMS_WEBHOOK_SECRET=s3cret
+node claimpilot-client.js        # creates a claim from a sample admission, retries it, prints predicted queries
+```
+
+Then press **Sync all portals**. The receiver prints one line per status change, for example
+`HX-CLM-0009: PREAUTH_SUBMITTED -> DENIED => switch the IP bill to self-pay / reimbursement and inform the patient`.
 
 ## Design decisions worth reviewing
 
@@ -222,7 +319,8 @@ real phone. The scheduled send runs once per IST day. A failed send raises a das
 ## Evals and tests
 
 ```bash
-uv run pytest                          # 45 tests, including 6 that drive real Chromium against the portals
+uv run pytest                          # 48 tests, including 6 that drive real Chromium against the portals
+(cd integrations/hms-node && node --test)   # 3 tests for the Node.js HMS-side reference
 uv run python -m evals.run_evals       # writes evals/report_<engine>.md
 ```
 
@@ -276,11 +374,13 @@ The latest report is in [`evals/report_gemini.md`](evals/report_gemini.md).
 ```
 app/
   llm.py                 Gemini (Vertex AI / AI Studio) + deterministic fallback + call logging
+  hms_webhook.py         signed, durable, per-claim-ordered claim events to the HMS
   claims/                status lifecycle & SLA · extraction + grounding · completeness rules · drafting + safety gate · event engine
   portals/               base (failure taxonomy, retries) · otp broker · nimbus / orbit / lotus adapters · runner
   receivables/           ledger (aging, deductions, denials, freshness) · CSV/XLSX intake · WhatsApp summary + schedule
   onboarding/            schemas & normalisers · column mapping · validation · readiness · job service
   main.py, static/       FastAPI API + vanilla-JS dashboard (no build step)
+integrations/hms-node/   Node.js reference for the HMS side: claim client + signed webhook receiver
 mock_portals/server.py   three fictional portals + SMS gateway + desk phone + admin/simulator
 samples/                 seed claims, clinical documents, messy onboarding exports, payer claim exports (all synthetic)
 evals/                   gold labels + eval runner + reports

@@ -51,6 +51,9 @@ def _ensure_indexes(db):
     db.claims.create_index([("portal", ASCENDING), ("portal_ref", ASCENDING)], unique=True,
                            partialFilterExpression={"portal_ref": {"$type": "string"}})
     db.claims.create_index([("status", ASCENDING)])
+    db.claims.create_index([("hms_ref", ASCENDING)], unique=True, partialFilterExpression={"hms_ref": {"$type": "string"}})
+    db.hms_outbox.create_index([("delivered", ASCENDING), ("next_attempt_at", ASCENDING)])
+    db.hms_outbox.create_index([("claim_id", ASCENDING), ("_id", ASCENDING)])
     db.claim_events.create_index([("claim_id", ASCENDING), ("at", DESCENDING)])
     db.portal_runs.create_index([("started_at", DESCENDING)])
     db.otp_requests.create_index([("status", ASCENDING), ("created_at", DESCENDING)])

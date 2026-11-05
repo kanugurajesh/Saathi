@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
-from . import llm
+from . import hms_webhook, llm
 from .claims import completeness, drafting, service
 from .claims.extraction import extract_preauth
 from .config import ROOT, settings
@@ -40,6 +40,7 @@ def _background_loops():
             service.sla_sweep()
             ledger.sync_from_claims()
             whatsapp.maybe_send_daily()
+            hms_webhook.retry_pending()
             if settings.sync_interval_min and time.time() - last_sync > settings.sync_interval_min * 60:
                 last_sync = time.time()
                 runner.start_background(trigger="schedule")
@@ -150,8 +151,25 @@ def check_completeness(payload: dict = Body(...)):
 def create(payload: dict = Body(...)):
     c = service.create_claim(fields=payload["fields"], documents=payload.get("documents", []), portal=payload.get("portal"),
                              portal_ref=payload.get("portal_ref") or None, hospital=payload.get("hospital") or "Godavari Demo Multispeciality Hospital, Nalgonda",
-                             sum_insured=payload.get("sum_insured"), stage=payload.get("stage", "preauth"))
+                             sum_insured=payload.get("sum_insured"), stage=payload.get("stage", "preauth"),
+                             hms_ref=payload.get("hms_ref") or None)
     return service.claim_view(c)
+
+
+@app.get("/api/claims/by-hms/{hms_ref}")
+def claim_by_hms(hms_ref: str):
+    """Look a claim up by the HMS's own reference (e.g. IP admission number)."""
+    c = get_db().claims.find_one({"hms_ref": hms_ref})
+    if not c:
+        raise HTTPException(404)
+    return service.claim_view(c)
+
+
+@app.get("/api/hms/outbox")
+def hms_outbox(undelivered: bool = False):
+    """Claim events queued for the HMS webhook, newest first, with delivery state."""
+    q = {"delivered": False} if undelivered else {}
+    return [clean(d) for d in get_db().hms_outbox.find(q).sort("_id", -1).limit(100)]
 
 
 @app.post("/api/claims/{claim_id}/documents")
