@@ -24,6 +24,7 @@
     <div class="sect">Revenue cycle</div>
     <button data-view="receivables">💰 Receivables &amp; WhatsApp</button>
     <button data-view="recon">🏦 Payment matching</button>
+    <button data-view="disputes">⚖️ Deduction recovery</button>
     <div class="sect">Hospital onboarding</div>
     <button data-view="onboarding">🚀 Onboarding copilot</button>
     <div class="sect">Integration</div>
@@ -239,6 +240,17 @@
         </div>
       </div>
       <div id="reconResult" style="margin-top:16px"></div>
+    </section>
+
+    <!-- ============================================================ DEDUCTION RECOVERY -->
+    <section class="view" id="view-disputes">
+      <h1>Deduction recovery</h1>
+      <p class="sub">Every deduction in every settlement letter, checked against what the rules allow: the discharge bill check where there is one,
+        IRDAI's lists and the letter's own arithmetic where there isn't. Over-deductions get a computed amount, the rule they break and the evidence,
+        and a reconsideration request is drafted for the TPA. Nothing is sent automatically.</p>
+      <div class="row" style="margin-bottom:16px"><button class="btn primary" onclick="dspSample()">Load sample letters with over-deductions</button>
+        <span class="small muted">(two TPA letters for claims that have a discharge bill check; the bill checks run first if needed)</span></div>
+      <div id="dspResult"></div>
     </section>
 
     <!-- ============================================================ ONBOARDING -->

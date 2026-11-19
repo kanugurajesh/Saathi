@@ -187,8 +187,9 @@ def safety_check(subject: str, body: str, attachments: list[str], ctx: dict) -> 
             issues.append({"type": "unsupported_negative_claim",
                            "detail": f"'{m.group(0)}' is asserted but not present in the clinical record", "blocking": True})
     record_digits = set(re.findall(r"\d{4,}", re.sub(r"[,\s]", "", record_blob)))
-    for amt in re.findall(r"(?i)(?:rs\.?|inr|₹)\s*([\d,]{4,})", body):
-        if amt.replace(",", "") not in record_digits:
+    for amt in re.findall(r"(?i)(?:rs\.?|inr|₹)\s*(\d[\d,]*)", body):
+        digits = amt.replace(",", "")  # "Rs 440, bill row 32": the trailing comma is punctuation, not part of the amount
+        if len(digits) >= 4 and digits not in record_digits:
             issues.append({"type": "unsupported_amount", "detail": f"Amount Rs {amt} not found in the record", "blocking": True})
     blocked = any(i["blocking"] for i in issues)
     return {

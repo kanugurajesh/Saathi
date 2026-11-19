@@ -1,0 +1,26 @@
+ORBIT GENERAL INSURANCE CO. LTD.
+Health Claims Department - Payment Intimation
+
+Dear Sir / Madam,
+
+We have settled the following claim and transferred the amount to your registered bank account.
+
+| Claim Number      | OR-2026-55120                     |
+| Name of Patient   | Venkatesh Rao                     |
+| Policy Number     | OGI/SC/2025/220931                |
+| Amount Claimed    | 183770                            |
+| Disallowed Amount | 52924                             |
+| Amount Settled    | 130846                            |
+| TDS               | 13085                             |
+| Amount Transferred| 117761                            |
+| NEFT Ref          | HDFCN52026110455120               |
+| Date of Transfer  | 04-Nov-2026                       |
+
+Reasons for deduction:
+- Non-payable items as per IRDAI list (knee immobilizer, crepe bandage, gloves, walker, ortho bundle, cotton roll, X-ray films, surgical drill, glucometer strips, hydrogen peroxide, IV cannula, Foley catheter, suture material) : 12620
+- Attendant food, medical records and admission charges not payable : 2050
+- Physiotherapy not payable : 1500
+- Co-pay 20% on claimed amount (senior citizen) : 36754
+
+For any discrepancy, please write to hospitalclaims@orbitinsurance.example within 15 days.
+Orbit General Insurance Co. Ltd.

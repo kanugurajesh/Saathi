@@ -21,7 +21,7 @@ RECEIVABLE_FILES = [("tpa_outstanding_hms_billing.csv", "private_tpa", 20), ("aa
                     ("ehs_claims_export.csv", "ehs", 21), ("pmjay_tms_export.csv", "pmjay", 72)]
 TODAY_SAMPLE = "aarogyasri_claims_export_today.csv"
 RECEIVABLE_COLLS = ("receivables", "receivable_events", "receivable_imports", "whatsapp_outbox",
-                    "bank_credits", "bank_statements", "settlement_letters", "bill_checks")
+                    "bank_credits", "bank_statements", "settlement_letters", "bill_checks", "disputes")
 
 
 def sample_shift_days() -> int:

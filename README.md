@@ -44,6 +44,7 @@ the AI never invents a clinical fact, and every bot action is audited.
 | **2. AI layer for existing features**: Gemini 2.5 Flash via Vertex AI, accuracy and safety evaluation | **AI pre-auth intake**: Gemini extracts 24 pre-auth fields from case sheets, PDFs or images, and a **grounding check** verifies every value against the source. A **query-risk screen** predicts the TPA's queries before submission. `evals/` measures field accuracy, hallucination rate and safety-gate red-team cases. |
 | **Revenue cycle**: short-payments at discharge | **Discharge bill check**: runs the itemised final bill against the policy terms *before* it goes to the TPA. It predicts every cut line by line: IRDAI's standard non-payable lists, room rent above the limit and the proportionate cut on linked charges, package rate, sub-limit, co-pay and balance sum insured. It flags a needed enhancement while the patient is still admitted and drafts a note telling the family their share. |
 | **Revenue cycle**: lump-sum payments nobody can split | **Payment matching**: reads TPA settlement letters (Gemini, with a rules fallback) and the bank statement. It ties each lump-sum credit to the claims it pays by UTR (the bank's transfer reference), posting TDS, the net amount and every deduction reason to the ledger. It flags payments a TPA reports as paid that never reached the bank, money that arrived with no letter, and letters whose numbers don't add up. |
+| **Revenue cycle**: money TPAs cut and nobody contests | **Deduction recovery**: checks every deduction in every settlement letter against the discharge bill check and IRDAI's rules. It finds proportionate cuts on exempt charges, payable items cut as "non-payable", and co-pay taken on the gross bill, then computes the amount and drafts a reconsideration request through the safety gate. It also tracks what was recovered, and how the bill check's predictions compare with what each TPA actually cut. |
 | **Revenue cycle**: the month-end blind spot | **Receivables tracker**: money owed per payer (private TPAs, Aarogyasri, EHS, PM-JAY), grouped by how long it has been unpaid (0-30 / 31-60 / 61-90 / 91-180 / 180+ days), with deductions and denials grouped by reason. It sends the owner a **daily WhatsApp summary** covering what came in, what was denied, what needs a reply, and which payer's data is stale. Private TPA claims flow in from the bots at discharge. The government schemes come in by CSV upload or manual entry. |
 | **3. Cross-application automation**: LLM correspondence, portal login and navigation, OTP flows, status into a queryable store, fallbacks for manual review | **ClaimPilot**: Playwright bots for 3 deliberately different portals. An **OTP ladder** tries the SMS forwarder first, then asks a human on the dashboard, then routes the claim to manual review. Statuses are normalised into one lifecycle in MongoDB with an event log. TPA query letters are fetched and a point-wise reply is **auto-drafted**. Escalation emails are drafted when IRDAI timelines are breached. |
 
@@ -141,7 +142,12 @@ The same image runs anywhere Docker does: `docker build -t claimpilot . && docke
    approved 1,12,000 − TDS 11,200 is 1,00,800, but it says 1,08,800, and the bank shows 1,00,800. Approve it with the corrected figure.
    Aarogyasri's ₹2,62,000 has no letter, so the only open-claim pair that adds up is *suggested* for a person to confirm.
    Padma's ₹64,800 is "paid" per Orbit but isn't in the bank, which raises a critical alert. Nimbus's ₹14,200 has no letter and matches no claim.
-9. **Onboarding copilot**: *Run with sample legacy files*. It finds 6 blocking rows in the Marg export (expired stock,
+9. **Deduction recovery**: *Load sample letters with over-deductions*. Venkatesh Rao's TPA cut ₹5,826 too much: a cannula, a catheter,
+   sutures and physiotherapy were cut as "non-payable" though they aren't on IRDAI's lists (₹3,240), and the 20% co-pay was taken on the claimed
+   ₹1,83,770 instead of the admissible ₹1,70,840 (₹2,586). Lakshmi Devi's TPA applied the room-rent proportionate cut to pharmacy, consumables and
+   investigations (₹3,150) and cut ₹1,000 for a missing birth record, which is recoverable by sending it. *Draft reconsideration request*
+   writes the letter with the evidence; fill the signatory, mark it sent, then record what the TPA paid back.
+10. **Onboarding copilot**: *Run with sample legacy files*. It finds 6 blocking rows in the Marg export (expired stock,
    MRP below purchase rate, duplicate batch...). It also finds a doctor without a registration number, a duplicate
    login phone, a rejected WhatsApp template and an extra zero in a tariff, and it predicts the go-live will be missed.
 
@@ -183,6 +189,7 @@ A reviewer should know exactly what this prototype proves and what it doesn't.
 | **Gemini 2.5 Flash extraction** | **Real.** Run live against `gemini-2.5-flash`. The 6 gold documents are synthetic, so this is a small-sample signal, not a benchmark. |
 | **Discharge bill check** | **Real logic, hand-entered policy terms.** The arithmetic (lists, room-rent ratio, package, sub-limit, co-pay, sum insured) is tested and reconciles line by line. The keyword lists follow IRDAI's standard Lists I-IV and common policy wording on proportionate deduction, but **haven't been checked against real TPA settlement letters**. Policy terms are typed in from the e-card; they are not read from the policy document. The 3 sample bills are synthetic. |
 | **Payment matching** | **Real logic, synthetic documents.** Letter extraction has been run live on Gemini 2.5 Flash and on the rules engine. UTR matching, the arithmetic and grounding holds, amount-based suggestions and the ledger updates are tested. The 5 letters and the bank statement are synthetic: **real TPA letter layouts and bank export formats haven't been seen yet**, and narration formats vary by bank. TDS is assumed to be 10% when matching by amount. |
+| **Deduction recovery** | **Real logic, synthetic letters.** The comparisons, verdicts, drafted request and outcome tracking are tested. It is only as right as the bill check's rules and the letter's reasons: a TPA that writes vague reasons ("as per policy") gets a *verify*, not a *dispute*. Whether TPAs accept these arguments **hasn't been tried**. |
 | **Safety gate, grounding check, completeness rules** | **Real and tested.** The TPA query rules come from public TPA and IRDAI material and haven't yet been checked with a hospital TPA desk. That check is planned: [`docs/field_validation.md`](docs/field_validation.md). |
 | **Onboarding Copilot** | **Real logic, assumed targets.** Column mapping, validation and readiness scoring work. The target schemas in `onboarding/schemas.py` are my guess at an HMS import format, not HextGen's real one. |
 | **HMS integration** (REST in, signed webhook out) | **Real and tested** against the Node.js reference receiver in `integrations/hms-node/`. The admission payload shape is illustrative. HextGen's real IPD data model would replace it. |
@@ -357,6 +364,26 @@ bank statement (CSV / XLSX)  --> credits from payers --UTR--> clean letters, amo
   `payment_reconciled` event, which reaches the HMS. When the claim had a discharge bill check, the matched row shows the predicted
   deduction next to the actual one. Re-uploading a statement or letter changes nothing.
 
+## Deduction recovery
+
+`receivables/disputes.py` compares each settlement letter's deductions with what the rules allow. If the claim has a discharge
+bill check, the comparison is category by category, with line-level evidence from the bill. If not, the letter's own reasons and
+arithmetic are used.
+
+| Verdict | When | Example |
+|---|---|---|
+| **dispute** | A rule says the cut is wrong, and the amount is computed | Proportionate cut applied to pharmacy / consumables / investigations; a cannula cut as "non-payable" though it isn't on IRDAI's lists; co-pay on the claimed amount instead of the admissible one |
+| **resubmit** | Cut for a missing document | "Birth record not submitted": send it and ask for the money |
+| **verify** | A person has to judge | Above MRP, tariff difference, "not medically justified", unnamed items, no bill to check against |
+| **valid** | The cut follows the rules | IRDAI-listed items, co-pay that matches the policy |
+
+The reconsideration request quotes the letter's own reasons and the rule each one breaks. It shows the evidence (bill row,
+computation) and asks for the total. It goes through the same safety gate as every other draft: only amounts from the letter, the
+bill or the computed findings may appear, and the signatory and any document to attach stay `[[placeholders]]` until a person
+fills them in. Once sent, the desk records what the TPA paid back. The *bill check vs what TPAs cut* panel shows, per reason and per
+TPA, where the predictions were right and where TPAs cut more. A gap the rules can't explain is either a rule the bill check is
+missing or a document the desk keeps forgetting.
+
 ## Receivables and the daily WhatsApp summary
 
 **What the bots can and can't see.** The portal bots log into private TPA portals only. **They cannot log into the
@@ -406,7 +433,7 @@ real phone. The scheduled send runs once per IST day. A failed send raises a das
 ## Evals and tests
 
 ```bash
-uv run pytest                          # 104 tests, including 6 that drive real Chromium against the portals
+uv run pytest                          # 112 tests, including 6 that drive real Chromium against the portals
 (cd integrations/hms-node && node --test)   # 3 tests for the Node.js HMS-side reference
 uv run python -m evals.run_evals       # writes evals/report_<engine>.md
 ```

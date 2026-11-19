@@ -24,7 +24,7 @@ from .db import clean, get_db, now
 from .onboarding import service as onboarding
 from .portals import runner
 from .receivables import importer as rcv_import
-from .receivables import ledger, reconcile, settlement, whatsapp
+from .receivables import disputes, ledger, reconcile, settlement, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -233,7 +233,10 @@ def mark_sent(draft_id: str, payload: dict = Body(default={})):
     db.drafts.update_one({"_id": d["_id"]}, {"$set": {"sent": True, "sent_at": now(), "final_body": body}})
     if d["kind"] == "query_reply":
         db.claims.update_one({"_id": d["claim_id"]}, {"$set": {"query.answered_at": now()}})
-    service._event(d["claim_id"], "correspondence_sent", {"kind": d["kind"], "subject": d["subject"]})
+    if d["kind"] == "deduction_dispute":
+        disputes.mark_sent(d["letter_id"])
+    if db.claims.find_one({"_id": d["claim_id"]}, {"_id": 1}):  # a dispute on a letter-only claim has no claim record
+        service._event(d["claim_id"], "correspondence_sent", {"kind": d["kind"], "subject": d["subject"]})
     return {"ok": True}
 
 
@@ -562,6 +565,51 @@ def reconcile_approve(letter_id: str, payload: dict = Body(default={})):
     except reconcile.MatchError as exc:
         raise HTTPException(409, str(exc)) from exc
     return clean(reconcile.reconcile())
+
+
+# ------------------------------------------------------------------ deduction recovery
+
+DISPUTE_SAMPLES = ROOT / "samples" / "disputes"
+
+
+@app.get("/api/disputes")
+def disputes_view():
+    return clean(disputes.overview())
+
+
+@app.post("/api/disputes/sample")
+def disputes_sample():
+    """Demo: two settlement letters with over-deductions, for claims whose discharge bill check is run first
+    (from the sample bills) so the TPA's cuts can be compared with what the rules allow."""
+    from scripts.seed import sample_shift_days
+
+    db = get_db()
+    for p in _bill_presets():
+        c = db.claims.find_one({"portal_ref": p["portal_ref"]})
+        if c and not service.latest_bill_check(c["_id"]):
+            parsed = bill_scrub.parse_bill((BILL_SAMPLES / p["file"]).read_bytes(), p["file"])
+            service.bill_check(parsed["lines"], p["policy"], p["context"], claim_id=c["_id"], source_file=p["file"])
+    for p in sorted(DISPUTE_SAMPLES.glob("*.txt")):
+        reconcile.add_letter(settlement.read_letter(p.read_bytes(), p.name, shift_days=sample_shift_days()))
+    return clean(disputes.overview())
+
+
+@app.post("/api/disputes/{letter_id:path}/draft")
+def disputes_draft(letter_id: str):
+    try:
+        d = disputes.draft(letter_id)
+    except disputes.DisputeError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"draft": d, **clean(disputes.overview())}
+
+
+@app.post("/api/disputes/{letter_id:path}/outcome")
+def disputes_outcome(letter_id: str, payload: dict = Body(...)):
+    try:
+        disputes.outcome(letter_id, payload.get("status", ""), payload.get("recovered"))
+    except (disputes.DisputeError, ValueError) as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return clean(disputes.overview())
 
 
 # ------------------------------------------------------------------ onboarding
