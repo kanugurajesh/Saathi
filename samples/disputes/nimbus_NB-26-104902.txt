@@ -1,0 +1,30 @@
+From: settlements@nimbustpa.example
+To: tpa.desk@godavari-demo-hospital.example
+Subject: Claim Settlement Advice - NB-26-104902 - Lakshmi Devi
+
+NIMBUS TPA SERVICES PVT LTD
+CLAIM SETTLEMENT ADVICE
+
+Hospital         : Godavari Demo Multispeciality Hospital, Nalgonda
+Claim No         : NB-26-104902
+Patient Name     : Lakshmi Devi
+Insurer          : Godavari General Insurance
+Policy No        : GGI-FL-7781230
+
+Claimed Amount (Rs)        : 74,240.00
+Total Deductions (Rs)      : 30,207.00
+Approved Amount (Rs)       : 44,033.00
+TDS Deducted (Rs)          : 4,403.00
+Net Amount Paid (Rs)       : 39,630.00
+
+Deduction Details:
+1. Room rent proportionate deduction 33.33% on total bill - eligible room Rs 3,000 per day   22,517.00
+2. Non-payable items as per IRDAI list (gloves, admission kit, abdominal binder, sanitary pads, diapers, gauze, cotton, drapes, registration, diet, baby charges)   6,690.00
+3. Newborn birth record and baby notes not submitted - paediatrician visit disallowed   1,000.00
+
+Payment Mode     : NEFT
+UTR No           : UTIBN52026110404902
+Payment Date     : 04/11/2026
+
+This payment is made on behalf of Godavari General Insurance. Kindly acknowledge receipt.
+Nimbus TPA - Claims Settlement Team

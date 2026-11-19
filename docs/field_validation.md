@@ -32,6 +32,7 @@ Ask permission before taking notes. Record no patient names, policy numbers or s
 10. What are the most common deductions? (Room rent, consumables, package rates...?)
     Can you show us one TPA settlement letter (patient details blacked out) so we can check our deduction rules against it?
     How do you match a lump-sum NEFT from a TPA to its claims today, and how long does it take each month?
+    Do you ever ask a TPA to reverse a deduction? Which ones succeed, and which do you not bother with?
 11. For Aarogyasri, EHS and PM-JAY: what export or report can you download, and what are its columns?
 
 **Close (2 min)**
@@ -55,6 +56,7 @@ Ask permission before taking notes. Record no patient names, policy numbers or s
 | TPAs and trusts pay several claims in one NEFT / RTGS, and the bank narration shows the payer and UTR only | `receivables/reconcile.py` | | |
 | TDS on TPA payments to the hospital is 10%; trusts (Aarogyasri, EHS) pay without TDS | `receivables/reconcile.py` | | |
 | "TPA says paid, money not in bank" happens often enough to be worth an alert | `receivables/reconcile.py` | | |
+| TPAs over-deduct in the ways we check (proportionate cut on pharmacy / consumables, payable items as "non-payable", co-pay on gross), and reverse them when shown the rule | `receivables/disputes.py` | | |
 
 ## Results
 

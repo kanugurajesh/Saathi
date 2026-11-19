@@ -231,3 +231,6 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 12.5px; }
 .opt .row { gap: 10px; }
 #reconTable { font-size: 13px; min-width: 820px; }
 #reconTable td[rowspan] { border-right: 1px solid var(--line); max-width: 260px; }
+
+/* ------------------------------------------------------------------ deduction recovery */
+#dspResult .g-main > .card th, #dspResult .g-main > .card td { padding: 8px 6px; }

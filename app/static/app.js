@@ -525,6 +525,73 @@ function renderRecon(v) {
   </div>`;
 }
 
+/* ------------------------------------------------------------------ deduction recovery */
+const VERDICT_CHIP = { dispute: ["bad", "dispute"], resubmit: ["warn", "resubmit document"], verify: ["info", "verify"], valid: ["ok", "valid"] };
+const DSP_STATUS = { to_draft: ["warn", "to claim back"], drafted: ["info", "request drafted"], sent: ["info", "request sent"],
+  recovered: ["ok", "recovered"], rejected: ["bad", "rejected"], nothing_to_claim: ["", "nothing to claim"] };
+const dspState = { claims: [] };
+async function loadDisputes() { renderDisputes(await api("/api/disputes")); }
+const dspSample = guard(async () => { $("#dspResult").innerHTML = '<div class="card empty"><span class="spin"></span> Checking deductions…</div>'; renderDisputes(await api("/api/disputes/sample", { method: "POST" })); });
+const dspDraft = guard(async (i) => {
+  const r = await api(`/api/disputes/${encodeURIComponent(dspState.claims[i].letter_id)}/draft`, { method: "POST" });
+  toast("Reconsideration request drafted: fill the placeholders, then mark it sent"); openDraft(r.draft._id);
+});
+const dspOutcome = guard(async (i, status) => {
+  const c = dspState.claims[i];
+  const body = { status, recovered: status === "recovered" ? Number($(`#dsp-rec-${i}`).value) : null };
+  renderDisputes(await api(`/api/disputes/${encodeURIComponent(c.letter_id)}/outcome`, { method: "POST", json: body }));
+  toast(status === "recovered" ? "Recovery recorded" : "Marked as rejected");
+});
+function dspFinding(f) {
+  const [cls, label] = VERDICT_CHIP[f.verdict];
+  return `<div class="finding ${f.verdict === "dispute" ? "blocker" : f.verdict === "valid" ? "" : f.verdict === "resubmit" ? "warning" : "info"}">
+    <div class="row"><span class="chip ${cls}">${label}</span><b>${esc(f.category)}</b><span class="spacer"></span><b>${f.amount === null ? "amount to confirm" : rs(f.amount)}</b></div>
+    <div class="small" style="margin-top:4px">${esc(f.basis)}</div>
+    ${f.evidence.map((e) => `<div class="small muted">• ${esc(e)}</div>`).join("")}
+    ${f.action ? `<div class="fx">Next: ${esc(f.action)}</div>` : ""}
+    <div class="small muted" style="margin-top:4px">Letter: ${f.letter_lines.map((l) => `“${esc(l.reason)}” ${rs(l.amount)}`).join(" · ")}</div></div>`;
+}
+function renderDisputes(v) {
+  dspState.claims = v.claims;
+  const t = v.totals, a = v.accuracy;
+  if (!v.claims.length) { $("#dspResult").innerHTML = '<div class="card empty">No settlement letters with deductions yet. Load the sample, or upload letters in Payment matching.</div>'; return; }
+  const gap = (p, x) => { const d = x - p; return `<td class="num ${Math.abs(d) > 1 ? "" : "muted"}">${Math.abs(d) <= 1 ? "–" : (d > 0 ? "+" : "−") + rs(Math.abs(d))}</td>`; };
+  $("#dspResult").innerHTML = `<div class="grid g-kpi">${[
+    ["Deducted by TPAs", rs(t.deducted), `${t.letters} settlement letter(s)`],
+    ["Wrongly deducted", rs(t.dispute), "a rule says so; claim it back", t.dispute ? "bad" : ""],
+    ["Resubmit a document", rs(t.resubmit), "cut only for a missing document", t.resubmit ? "warn" : ""],
+    ["To verify", rs(t.verify), "rate / MRP / clinical: a person decides"],
+    ["Recovered", rs(t.recovered), `${t.sent} request(s) awaiting the TPA`, t.recovered ? "" : ""],
+  ].map(([l, val, h, cls]) => `<div class="card kpi ${cls || ""}"><div class="label">${l}</div><div class="val">${val}</div><div class="hint">${h}</div></div>`).join("")}</div>
+  <div class="grid g-main">
+    <div>${v.claims.map((c, i) => {
+      const [sc, st] = DSP_STATUS[c.status] || ["", c.status];
+      const act = c.findings.filter((f) => f.verdict !== "valid"), ok = c.findings.filter((f) => f.verdict === "valid");
+      return `<div class="card" style="margin-bottom:12px"><div class="row"><h2 style="margin:0">${esc(c.claim_ref)} · ${esc(c.patient_name || "")}</h2><span class="chip ${sc}">${st}</span><span class="spacer"></span>
+          <span class="small">${esc(c.payer || "")} deducted <b>${rs(c.deducted)}</b> of ${rs(c.claimed)}</span></div>
+        <div class="small muted" style="margin:4px 0 10px">${c.bill_check ? `checked against the discharge bill check (predicted ${rs(c.predicted)})` : "no discharge bill check: letter text and arithmetic only"} · ${esc(c.letter_file)}
+          ${c.claim_id ? ` · <a href="#" onclick="show('command');openClaim('${esc(c.claim_id)}');return false">${esc(c.claim_id)}</a>` : ""}</div>
+        ${act.map(dspFinding).join("")}
+        ${ok.length ? `<details><summary class="small">${ok.length} deduction(s) follow the rules: ${rs(ok.reduce((s, f) => s + (f.amount || 0), 0))}</summary>${ok.map(dspFinding).join("")}</details>` : ""}
+        <div class="row" style="margin-top:10px">
+          ${c.status === "to_draft" && (c.totals.dispute || c.totals.resubmit || c.unquantified) ? `<button class="btn primary" onclick="dspDraft(${i})">✍ Draft reconsideration request (${rs(c.totals.dispute + c.totals.resubmit)})</button>` : ""}
+          ${c.status === "drafted" ? `<button class="btn" onclick="openDraft('${esc(c.draft_id)}')">Open draft</button><span class="small muted">Fill the placeholders and mark it sent in Correspondence.</span>` : ""}
+          ${c.status === "sent" ? `<label class="small">TPA agreed to pay ₹ <input type="number" id="dsp-rec-${i}" value="${c.totals.dispute + c.totals.resubmit}" style="width:120px"></label>
+            <button class="btn sm primary" onclick="dspOutcome(${i},'recovered')">Recovered</button><button class="btn sm danger" onclick="dspOutcome(${i},'rejected')">Rejected</button>` : ""}
+          ${c.status === "recovered" ? `<span class="chip ok">${rs(c.recovered)} recovered</span>` : ""}</div></div>`;
+    }).join("")}</div>
+    <div class="card"><h2>Bill check vs what TPAs cut</h2>
+      <div class="small muted" style="margin:-6px 0 10px">${a.claims} claim(s) with both a discharge bill check and a settlement letter. Over time this is how accurate the bill check is, and where TPAs cut more than the rules allow.</div>
+      ${a.claims ? `<table class="small"><thead><tr><th>Reason</th><th class="num">Predicted</th><th class="num">TPA cut</th><th class="num">Gap</th></tr></thead><tbody>
+        ${a.by_reason.map((r) => `<tr><td>${esc(r.category)}</td><td class="num">${rs(r.predicted)}</td><td class="num">${rs(r.actual)}</td>${gap(r.predicted, r.actual)}</tr>`).join("")}
+        <tr class="total"><td><b>Total</b></td><td class="num"><b>${rs(a.predicted)}</b></td><td class="num"><b>${rs(a.actual)}</b></td>${gap(a.predicted, a.actual)}</tr></tbody></table>
+        <h3 style="margin-top:14px">By TPA</h3><table class="small"><thead><tr><th>TPA</th><th class="num">Claims</th><th class="num">Over-deducted</th></tr></thead><tbody>
+        ${a.by_payer.map((p) => `<tr><td>${esc(p.payer)}</td><td class="num">${p.claims}</td><td class="num">${rs(p.over)}</td></tr>`).join("")}</tbody></table>
+        <div class="small muted" style="margin-top:8px">A gap the rules can't explain (e.g. "Documents missing") is a rule the bill check doesn't have yet, or a document the desk keeps forgetting.</div>`
+        : '<div class="muted small">Run the discharge bill check before claims settle to see this.</div>'}</div>
+  </div>`;
+}
+
 /* ------------------------------------------------------------------ onboarding */
 const runOnboardingSample = guard(async () => { $("#obResult").innerHTML = '<div class="card empty"><span class="spin"></span> Processing…</div>'; renderJob(await api("/api/onboarding/sample", { method: "POST" })); });
 const runOnboarding = guard(async (files) => {
@@ -575,6 +642,7 @@ async function refresh() {
     else if (state.view === "receivables") await loadReceivables();
     else if (state.view === "billcheck") await loadBillCheck();
     else if (state.view === "recon") await loadRecon();
+    else if (state.view === "disputes") await loadDisputes();
   } catch (e) { console.error(e); }
 }
 (async function boot() {
