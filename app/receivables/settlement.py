@@ -201,6 +201,7 @@ def read_letter(data: bytes, filename: str, *, shift_days: int = 0) -> dict:
     """One settlement letter -> fields + grounding + arithmetic issues + needs_review."""
     name = filename.lower()
     text = data.decode("utf-8-sig", errors="replace") if name.endswith((".eml", ".txt", ".text", ".msg")) else document_text(data, filename)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")  # emails use CRLF; line-anchored patterns expect \n
 
     def via_llm():
         if text.strip():

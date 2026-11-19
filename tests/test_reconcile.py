@@ -26,6 +26,13 @@ def test_three_letter_layouts_read_exactly():
     assert c["fields"]["approved_amount"] == 112000 and c["fields"]["payer"].startswith("Lotus Health TPA")
 
 
+def test_crlf_and_lf_letters_read_the_same():
+    raw = (S / "nimbus_NB-26-101240.txt").read_bytes().replace(b"\r\n", b"\n")
+    lf = settlement.read_letter(raw, "lf.txt")["fields"]
+    crlf = settlement.read_letter(raw.replace(b"\n", b"\r\n"), "crlf.txt")["fields"]
+    assert lf == crlf and crlf["payer"].startswith("NIMBUS TPA")
+
+
 def test_a_letter_that_does_not_add_up_is_held():
     r = _letter("lotus_LT-87102.txt")
     assert r["needs_review"] and "100,800" in r["issues"][0] and "108,800" in r["issues"][0]
