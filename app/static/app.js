@@ -240,7 +240,7 @@ const markSent = guard(async (id) => { await api(`/api/drafts/${id}/mark-sent`, 
 const RCV_STATUS = { PENDING: ["info", "pending"], QUERY: ["warn", "query raised"], APPROVED: ["brand", "approved, unpaid"], PART_PAID: ["warn", "part paid"],
   PAID: ["ok", "paid"], DENIED: ["bad", "denied"] };
 const rcvChip = (s) => { const [c, t] = RCV_STATUS[s] || ["", s]; return `<span class="chip ${c}">${esc(t)}</span>`; };
-const SOURCE = { portal_bot: ["brand", "🤖 bot"], csv: ["", "CSV"], manual: ["warn", "manual"] };
+const SOURCE = { portal_bot: ["brand", "🤖 bot"], csv: ["", "CSV"], manual: ["warn", "manual"], settlement: ["ok", "🏦 letter + bank"], bank_match: ["warn", "🏦 bank, by amount"] };
 const srcChip = (s) => { const [c, t] = SOURCE[s] || ["", s]; return `<span class="chip ${c}">${esc(t)}</span>`; };
 const lakh = (n) => (n >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(1)} L` : inr(n));
 function freshCell(f) {
@@ -443,6 +443,88 @@ function renderBill(r) {
   </div>`;
 }
 
+/* ------------------------------------------------------------------ payment matching */
+const reconState = { review: [] };
+const reconLoading = () => ($("#reconResult").innerHTML = '<div class="card empty"><span class="spin"></span> Matching…</div>');
+const shortDate = (d) => (d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "–");
+async function loadRecon() { renderRecon(await api("/api/reconcile")); }
+const reconRun = (p) => guard(async (...a) => { reconLoading(); try { renderRecon(await p(...a)); } catch (e) { loadRecon(); throw e; } });
+const reconSample = reconRun(() => api("/api/reconcile/sample", { method: "POST" }));
+const reconLetters = reconRun((files) => { const fd = new FormData(); files.forEach((f) => fd.append("files", f)); return api("/api/reconcile/letters", { method: "POST", body: fd }); });
+const reconStatement = reconRun((files) => { const fd = new FormData(); fd.append("file", files[0]); return api("/api/reconcile/statement", { method: "POST", body: fd }); });
+const reconConfirm = guard(async (i, j) => {
+  const item = reconState.review[i], o = item.options[j];
+  const r = await api("/api/reconcile/confirm", { method: "POST", json: { credit_id: item.credit._id, receivable_ids: o.receivable_ids, mode: o.mode } });
+  toast(`Matched to ${r.confirmed.matches.length} claim(s); the ledger is updated`); renderRecon(r);
+});
+const reconApprove = guard(async (i) => {
+  const l = reconState.review[i].letters[0], net = $(`#recon-net-${i}`).value;
+  const r = await api(`/api/reconcile/letters/${encodeURIComponent(l._id)}/approve`, { method: "POST", json: { corrections: { net_paid: net } } });
+  toast("Letter approved"); renderRecon(r);
+});
+function renderRecon(v) {
+  reconState.review = v.review;
+  const t = v.totals;
+  if (v.statements?.length) { const s = v.statements[0]; $("#stmtInfo").innerHTML = `Latest: <b>${esc(s.filename)}</b> · ${shortDate(s.period_from)} – ${shortDate(s.period_to)} · ${s.rows} transactions, ${s.credits} credits`; }
+  if (!v.statements?.length && !v.letters?.length) { $("#reconResult").innerHTML = '<div class="card empty">No letters or bank statement yet. Load the sample to see it work.</div>'; return; }
+  const credit = (c) => `${rs(c.amount)} on ${shortDate(c.date)}<div class="small muted mono" title="${esc(c.narration)}">${esc(c.narration.slice(0, 70))}${c.narration.length > 70 ? "…" : ""}</div>`;
+  const review = v.review.map((r, i) => {
+    if (r.kind === "suggested" || r.kind === "ambiguous") {
+      return `<div class="finding warning"><div class="row"><b>${rs(r.credit.amount)} from ${esc(r.payer)}, no settlement letter</b><span class="spacer"></span>
+        <span class="chip ${r.kind === "suggested" ? "info" : "warn"}">${r.kind === "suggested" ? "one match by amount" : r.options.length + " possible matches"}</span></div>
+        <div class="small muted">${shortDate(r.credit.date)} · ${esc(r.credit.narration)}</div>
+        ${r.options.map((o, j) => `<div class="opt"><div class="small">${o.mode === "gross" ? "Full outstanding" : "Outstanding less 10% TDS"} of:</div>
+          ${o.claims.map((c) => `<div class="row small"><span class="mono">${esc(c.claim_ref)}</span><span>${esc(c.patient_name || "")}</span><span class="spacer"></span><span>${rs(c.outstanding)}</span></div>`).join("")}
+          <div class="row" style="margin-top:6px"><span class="small muted">adds up to ${rs(o.total)}</span><span class="spacer"></span><button class="btn sm primary" onclick="reconConfirm(${i},${j})">Confirm match</button></div></div>`).join("")}
+        <div class="fx">Matched on amount alone, so a person confirms. Ask ${esc(r.payer)} for the remittance advice to be sure.</div></div>`;
+    }
+    if (r.kind === "amount_mismatch") {
+      return `<div class="finding blocker"><b>UTR match, but the amounts differ: bank ${rs(r.credit.amount)}, letters ${rs(r.letters_total)}</b>
+        <div class="small muted">${shortDate(r.credit.date)} · ${esc(r.credit.narration)}</div>
+        ${r.letters.map((l) => `<div class="row small"><span class="mono">${esc(l.fields.claim_ref)}</span><span>${esc(l.fields.patient_name || "")}</span><span class="spacer"></span>${rs(l.fields.net_paid)}</div>`).join("")}
+        <div class="fx">A letter for this transfer may be missing, or one was paid short. Ask the TPA before posting it.</div></div>`;
+    }
+    const l = r.letters[0], f = l.fields;
+    const suggestedNet = r.credit && r.letters.length === 1 ? r.credit.amount : (f.approved_amount ?? 0) - (f.tds_amount ?? 0);
+    return `<div class="finding blocker"><div class="row"><b>Letter held: ${esc(f.claim_ref || l.filename)} · ${esc(f.patient_name || "")}</b><span class="spacer"></span><span class="chip">${esc(l.engine)}</span></div>
+      ${l.issues.map((x) => `<div class="small" style="color:var(--bad)">• ${esc(x)}</div>`).join("")}
+      ${r.credit ? `<div class="small" style="margin-top:4px">The bank received <b>${rs(r.credit.amount)}</b> under UTR <span class="mono">${esc(f.utr)}</span> on ${shortDate(r.credit.date)}.</div>` : ""}
+      <div class="row" style="margin-top:8px"><label class="small">Net paid ₹ <input type="number" id="recon-net-${i}" value="${Math.round(suggestedNet)}" style="width:130px"></label>
+        <button class="btn sm primary" onclick="reconApprove(${i})">Checked: approve letter</button></div>
+      <div class="fx">Held because the letter doesn't add up or a value isn't in it. Check it against the bank credit before it touches the ledger.</div></div>`;
+  }).join("");
+  $("#reconResult").innerHTML = `<div class="grid g-kpi">${[
+    ["Received from payers", rs(t.received), `${t.received_count} credits in the statement`],
+    ["Matched to claims", rs(t.matched), `${t.matched_count} credits · ledger updated`],
+    ["Needs a decision", t.needs_decision, "suggested matches, held letters", t.needs_decision ? "warn" : ""],
+    ["TPA says paid, not in bank", rs(t.missing_amount), `${t.missing_count} letter(s) · chase the UTR`, t.missing_count ? "bad" : ""],
+    ["No remittance advice", rs(t.unexplained_amount), `${t.unexplained_count} credit(s) · ask the payer`, t.unexplained_count ? "warn" : ""],
+  ].map(([l, val, h, cls]) => `<div class="card kpi ${cls || ""}"><div class="label">${l}</div><div class="val">${val}</div><div class="hint">${h}</div></div>`).join("")}</div>
+  <div class="grid g-2">
+    <div class="card"><h2>Needs a decision</h2>${review || '<div class="chip ok">Nothing waiting ✓</div>'}</div>
+    <div class="grid">
+      <div class="card"><h2>TPA says paid, money not in the bank</h2>${v.missing.map((x) => `<div class="finding blocker"><div class="row"><b>${esc(x.fields.claim_ref)} · ${esc(x.fields.patient_name || "")}</b><span class="spacer"></span><b>${rs(x.fields.net_paid)}</b></div>
+          <div class="small">${esc(x.fields.payer || "")} · paid ${shortDate(x.fields.payment_date)} · UTR <span class="mono">${esc(x.fields.utr)}</span></div>
+          <div class="fx">Not in the statement up to ${shortDate(x.statement_to)}. Ask the TPA to confirm the beneficiary account, and the bank to trace the UTR.</div></div>`).join("") || '<div class="muted small">None ✓</div>'}
+        ${v.waiting.length ? `<div class="small muted" style="margin-top:6px">${v.waiting.length} letter(s) paid after the latest statement: waiting for the next one.</div>` : ""}</div>
+      <div class="card"><h2>Money in the bank, no remittance advice</h2>${v.unexplained.map((u) => `<div class="finding warning"><div class="row"><b>${esc(u.payer)}</b><span class="spacer"></span><b>${rs(u.credit.amount)}</b></div>
+          <div class="small muted">${shortDate(u.credit.date)} · ${esc(u.credit.narration)}</div><div class="fx">Matches no letter and no open claim. Ask ${esc(u.payer)} which claims it settles.</div></div>`).join("") || '<div class="muted small">None ✓</div>'}
+        ${v.others.length ? `<div class="small muted" style="margin-top:6px">${v.others.length} other credit(s), ${rs(v.others.reduce((a, c) => a + c.amount, 0))}, not from an insurer or scheme (patient UPI, cash): ignored.</div>` : ""}</div>
+    </div>
+  </div>
+  <div class="card flush" style="margin-top:16px"><div class="row" style="padding:14px 16px 4px"><h2 style="margin:0">Matched</h2><span class="spacer"></span><span class="small muted">each bank credit and the claims it paid</span></div>
+    <div class="scroll"><table id="reconTable"><thead><tr><th>Bank credit</th><th>Claim</th><th class="num">Approved</th><th class="num">TDS</th><th class="num">Net paid</th><th class="num">Deducted</th><th>Why (from the letter)</th></tr></thead><tbody>
+    ${v.matched.flatMap((c) => c.matches.map((m, k) => `<tr>${k === 0 ? `<td rowspan="${c.matches.length}">${credit(c)}<div><span class="chip ${c.method === "utr" ? "ok" : "warn"}">${esc(c.method === "utr" ? "UTR + letter" : c.method)}</span></div></td>` : ""}
+      <td class="nowrap"><b class="mono">${esc(m.claim_ref)}</b><div class="small">${esc(m.patient_name || "")}</div>${m.new_in_ledger ? '<span class="chip warn">was not in the ledger</span>' : ""}</td>
+      <td class="num">${rs(m.approved)}</td><td class="num">${rs(m.tds)}</td><td class="num"><b>${rs(m.net_paid)}</b></td><td class="num">${m.deduction ? rs(m.deduction) : "–"}
+      ${m.predicted_deduction != null ? `<div class="small muted">predicted ${rs(m.predicted_deduction)}</div>` : ""}</td><td class="small">${esc(m.reasons || "")}</td></tr>`)).join("")
+      || '<tr><td colspan="7" class="empty">Nothing matched yet</td></tr>'}</tbody></table></div>
+    <details style="padding:0 16px 14px"><summary class="small">${v.letters.length} settlement letter(s) read</summary><table class="small" style="margin-top:6px"><tbody>
+      ${v.letters.map((l) => `<tr><td>${esc(l.filename)}</td><td class="mono">${esc(l.fields.claim_ref || "")}</td><td class="num">${rs(l.fields.net_paid)}</td><td class="mono">${esc(l.fields.utr || "")}</td>
+        <td><span class="chip ${l.status === "reconciled" ? "ok" : l.status === "review" ? "bad" : ""}">${esc(l.status)}</span></td><td class="muted">${esc(l.engine)}</td></tr>`).join("")}</tbody></table></details>
+  </div>`;
+}
+
 /* ------------------------------------------------------------------ onboarding */
 const runOnboardingSample = guard(async () => { $("#obResult").innerHTML = '<div class="card empty"><span class="spin"></span> Processing…</div>'; renderJob(await api("/api/onboarding/sample", { method: "POST" })); });
 const runOnboarding = guard(async (files) => {
@@ -492,6 +574,7 @@ async function refresh() {
     else if (state.view === "drafts") await loadDrafts();
     else if (state.view === "receivables") await loadReceivables();
     else if (state.view === "billcheck") await loadBillCheck();
+    else if (state.view === "recon") await loadRecon();
   } catch (e) { console.error(e); }
 }
 (async function boot() {
@@ -499,6 +582,8 @@ async function refresh() {
   wireDrop("#obDrop", "#obIn", runOnboarding);
   wireDrop("#rcvDrop", "#rcvIn", rcvUpload);
   wireDrop("#billDrop", "#billIn", billUpload);
+  wireDrop("#ltrDrop", "#ltrIn", reconLetters);
+  wireDrop("#stmtDrop", "#stmtIn", reconStatement);
   const samples = await api("/api/samples/documents");
   $("#sampleSel").innerHTML = samples.map((s) => `<option>${esc(s)}</option>`).join("");
   $("#obProfile").value = JSON.stringify(await api("/api/onboarding/sample-profile"), null, 2);

@@ -1,0 +1,29 @@
+From: settlements@nimbustpa.example
+To: tpa.desk@godavari-demo-hospital.example
+Subject: Claim Settlement Advice - NB-26-098812 - Shobha Rani Thota
+
+NIMBUS TPA SERVICES PVT LTD
+CLAIM SETTLEMENT ADVICE
+
+Hospital         : Godavari Demo Multispeciality Hospital, Nalgonda
+Claim No         : NB-26-098812
+Patient Name     : Shobha Rani Thota
+Insurer          : Deccan Shield General Insurance
+Policy No        : DSG/HL/2025/0031877
+
+Claimed Amount (Rs)        : 1,42,000.00
+Total Deductions (Rs)      : 13,500.00
+Approved Amount (Rs)       : 1,28,500.00
+TDS Deducted (Rs)          : 12,850.00
+Net Amount Paid (Rs)       : 1,15,650.00
+
+Deduction Details:
+1. Room rent proportionate deduction - eligible room single AC   9,800.00
+2. Non-payable items as per IRDAI list (gloves, admission kit)    3,700.00
+
+Payment Mode     : NEFT
+UTR No           : UTIBN52026110541873
+Payment Date     : 01/11/2026
+
+This payment is made on behalf of Deccan Shield General Insurance. Kindly acknowledge receipt.
+Nimbus TPA - Claims Settlement Team

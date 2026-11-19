@@ -1,0 +1,24 @@
+ORBIT GENERAL INSURANCE CO. LTD.
+Health Claims Department - Payment Intimation
+
+Dear Sir / Madam,
+
+We have settled the following claim and transferred the amount to your registered bank account.
+
+| Claim Number      | OR-2026-53310                     |
+| Name of Patient   | Padma Kandula                     |
+| Policy Number     | OGI/HF/2026/104417                |
+| Amount Claimed    | 78000                             |
+| Disallowed Amount | 6000                              |
+| Amount Settled    | 72000                             |
+| TDS               | 7200                              |
+| Amount Transferred| 64800                             |
+| NEFT Ref          | HDFCN52026110412290               |
+| Date of Transfer  | 31-Oct-2026                       |
+
+Reasons for deduction:
+- Non-payable items (crepe bandage, walker) : 2400
+- Tariff difference on pharmacy as per agreed rates : 3600
+
+For any discrepancy, please write to hospitalclaims@orbitinsurance.example within 15 days.
+Orbit General Insurance Co. Ltd.

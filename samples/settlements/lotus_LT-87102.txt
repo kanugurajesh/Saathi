@@ -1,0 +1,25 @@
+From: noreply@lotushealthtpa.example
+Subject: Payment advice for claim LT-87102
+
+Lotus Health TPA Pvt Ltd
+
+Dear Hospital Team,
+
+Please find the payment details for the claim below.
+
+Claim ID: LT-87102
+Patient: Swapna Gajula
+Insurer: Kakatiya Health Insurance
+Bill Amount: Rs. 1,20,000
+Total Disallowed: Rs. 8,000
+Admissible Amount: Rs. 1,12,000
+Less TDS: Rs. 11,200
+Net Payable: Rs. 1,08,800
+UTR: SBINN52026110633221
+Paid On: 02/11/2026
+
+Deduction details:
+Pharmacy charges above MRP / tariff difference - 8,000
+
+Regards,
+Lotus Health TPA - Accounts

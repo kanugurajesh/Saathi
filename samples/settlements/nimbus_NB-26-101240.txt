@@ -1,0 +1,30 @@
+From: settlements@nimbustpa.example
+To: tpa.desk@godavari-demo-hospital.example
+Subject: Claim Settlement Advice - NB-26-101240 - Mahesh Goud Pittala
+
+NIMBUS TPA SERVICES PVT LTD
+CLAIM SETTLEMENT ADVICE
+
+Hospital         : Godavari Demo Multispeciality Hospital, Nalgonda
+Claim No         : NB-26-101240
+Patient Name     : Mahesh Goud Pittala
+Insurer          : Godavari General Insurance
+Policy No        : GGI-FL-6620154
+
+Claimed Amount (Rs)        : 96,000.00
+Total Deductions (Rs)      : 9,500.00
+Approved Amount (Rs)       : 86,500.00
+TDS Deducted (Rs)          : 8,650.00
+Net Amount Paid (Rs)       : 77,850.00
+
+Deduction Details:
+1. Non-payable consumables as per IRDAI list                     6,500.00
+2. Attendant charges not payable                                 1,500.00
+3. Pharmacy above MRP                                            1,500.00
+
+Payment Mode     : NEFT
+UTR No           : UTIBN52026110541873
+Payment Date     : 01/11/2026
+
+This payment is made on behalf of Godavari General Insurance. Kindly acknowledge receipt.
+Nimbus TPA - Claims Settlement Team

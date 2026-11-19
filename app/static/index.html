@@ -23,6 +23,7 @@
     <button data-view="billcheck">🧮 Discharge bill check</button>
     <div class="sect">Revenue cycle</div>
     <button data-view="receivables">💰 Receivables &amp; WhatsApp</button>
+    <button data-view="recon">🏦 Payment matching</button>
     <div class="sect">Hospital onboarding</div>
     <button data-view="onboarding">🚀 Onboarding copilot</button>
     <div class="sect">Integration</div>
@@ -214,6 +215,30 @@
           <label class="small"><input type="checkbox" id="rcvOpen" checked onchange="loadRcvList()"> unpaid only</label></div>
         <div class="scroll"><table id="rcvTable"></table></div>
       </div>
+    </section>
+
+    <!-- ============================================================ PAYMENT MATCHING -->
+    <section class="view" id="view-recon">
+      <h1>Payment matching</h1>
+      <p class="sub">TPAs and trusts pay in lump sums, and the bank narration names the payer and a UTR, never the claims. Drop in the
+        TPAs' settlement letters and the bank statement: each credit is tied to the claims it pays, with TDS and every deduction reason,
+        and the receivables ledger updates itself. Only exact UTR matches with letters that add up are applied automatically;
+        everything else waits for a person.</p>
+      <div class="grid g-2">
+        <div class="card">
+          <h2>Settlement letters <span class="muted small">(payment advice from TPAs: PDF, text, email)</span></h2>
+          <div class="drop" id="ltrDrop">Drop settlement letters<input type="file" id="ltrIn" multiple hidden></div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" onclick="reconSample()">Load this week's sample letters + bank statement</button></div>
+          <div class="small muted" style="margin-top:6px">5 TPA letters and a current-account statement: a lump sum covering two claims, a letter
+            that doesn't add up, a payment the bank never received, a trust payment with no letter.</div>
+        </div>
+        <div class="card">
+          <h2>Bank statement <span class="muted small">(CSV / XLSX from net banking)</span></h2>
+          <div class="drop" id="stmtDrop">Drop the current-account statement<input type="file" id="stmtIn" hidden></div>
+          <div id="stmtInfo" class="small muted" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div id="reconResult" style="margin-top:16px"></div>
     </section>
 
     <!-- ============================================================ ONBOARDING -->

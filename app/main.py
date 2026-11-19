@@ -24,7 +24,7 @@ from .db import clean, get_db, now
 from .onboarding import service as onboarding
 from .portals import runner
 from .receivables import importer as rcv_import
-from .receivables import ledger, whatsapp
+from .receivables import ledger, reconcile, settlement, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -505,6 +505,63 @@ def whatsapp_send():
 @app.get("/api/receivables/whatsapp/outbox")
 def whatsapp_outbox():
     return whatsapp.outbox()
+
+
+# ------------------------------------------------------------------ payment matching (bank statement + settlement letters)
+
+RECON_SAMPLES = ROOT / "samples" / "settlements"
+
+
+@app.get("/api/reconcile")
+def reconcile_view():
+    return clean(reconcile.reconcile())
+
+
+@app.post("/api/reconcile/letters")
+async def reconcile_letters(files: list[UploadFile] = File(...)):
+    """Settlement letters / payment advice from TPAs (PDF, text or email). Each is checked before it is used."""
+    letters = [reconcile.add_letter(settlement.read_letter(await f.read(), f.filename or "letter.txt")) for f in files]
+    return {"letters": letters, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/statement")
+async def reconcile_statement(file: UploadFile = File(...)):
+    try:
+        st = reconcile.add_statement(await file.read(), file.filename or "statement.csv")
+    except reconcile.StatementError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"statement": st, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/sample")
+def reconcile_sample():
+    """Demo: this week's TPA letters and the hospital's current-account statement."""
+    from scripts.seed import sample_shift_days
+
+    sh = sample_shift_days()
+    letters = [reconcile.add_letter(settlement.read_letter(p.read_bytes(), p.name, shift_days=sh))
+               for p in sorted(RECON_SAMPLES.glob("*.txt"))]
+    stmt = RECON_SAMPLES / "bank_statement_current_account.csv"
+    st = reconcile.add_statement(stmt.read_bytes(), stmt.name, shift_days=sh)
+    return {"letters": letters, "statement": st, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/confirm")
+def reconcile_confirm(payload: dict = Body(...)):
+    try:
+        res = reconcile.confirm(payload.get("credit_id", ""), payload.get("receivable_ids") or [], payload.get("mode", "gross"))
+    except reconcile.MatchError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"confirmed": res, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/letters/{letter_id:path}/approve")
+def reconcile_approve(letter_id: str, payload: dict = Body(default={})):
+    try:
+        reconcile.approve_letter(letter_id, payload.get("corrections"))
+    except reconcile.MatchError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return clean(reconcile.reconcile())
 
 
 # ------------------------------------------------------------------ onboarding
