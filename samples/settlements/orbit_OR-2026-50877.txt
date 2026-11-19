@@ -1,0 +1,23 @@
+ORBIT GENERAL INSURANCE CO. LTD.
+Health Claims Department - Payment Intimation
+
+Dear Sir / Madam,
+
+We have settled the following claim and transferred the amount to your registered bank account.
+
+| Claim Number      | OR-2026-50877                     |
+| Name of Patient   | Srikanth Kommu                    |
+| Policy Number     | OGI/HF/2026/118802                |
+| Amount Claimed    | 230000                            |
+| Disallowed Amount | 23000                             |
+| Amount Settled    | 207000                            |
+| TDS               | 20700                             |
+| Amount Transferred| 186300                            |
+| RTGS Ref          | HDFCR52026110698765432            |
+| Date of Transfer  | 02-Nov-2026                       |
+
+Reasons for deduction:
+- Co-pay 10% as per policy terms : 23000
+
+For any discrepancy, please write to hospitalclaims@orbitinsurance.example within 15 days.
+Orbit General Insurance Co. Ltd.

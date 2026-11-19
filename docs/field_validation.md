@@ -30,6 +30,8 @@ Ask permission before taking notes. Record no patient names, policy numbers or s
 **Money and timelines (3 min)**
 9. Do insurers actually decide within 1 hour for cashless pre-auth and within 3 hours at discharge? What do you do when they don't?
 10. What are the most common deductions? (Room rent, consumables, package rates...?)
+    Can you show us one TPA settlement letter (patient details blacked out) so we can check our deduction rules against it?
+    How do you match a lump-sum NEFT from a TPA to its claims today, and how long does it take each month?
 11. For Aarogyasri, EHS and PM-JAY: what export or report can you download, and what are its columns?
 
 **Close (2 min)**
@@ -46,6 +48,13 @@ Ask permission before taking notes. Record no patient names, policy numbers or s
 | Room-rent proportionate deduction is common | `receivables/ledger.py` | | |
 | IRDAI 1 h / 3 h timelines are often missed | `claims/status.py` | | |
 | Aarogyasri/EHS/PM-JAY exports have the columns in `samples/receivables/` | `receivables/importer.py` | | |
+| The IRDAI-list items we flag (gloves, admission kit, diet, registration...) are actually cut by TPAs, and the desk rarely gets them reversed | `claims/bill_scrub.py` | | |
+| Proportionate deduction spares pharmacy, consumables, implants and investigations, and ICU has its own cap | `claims/bill_scrub.py` | | |
+| The HMS can export the final bill as an itemised CSV / XLSX with a description and amount per line | `claims/bill_scrub.py` | | |
+| TPAs send one settlement letter per claim, with the UTR, TDS and deduction reasons, by email | `receivables/settlement.py` | | |
+| TPAs and trusts pay several claims in one NEFT / RTGS, and the bank narration shows the payer and UTR only | `receivables/reconcile.py` | | |
+| TDS on TPA payments to the hospital is 10%; trusts (Aarogyasri, EHS) pay without TDS | `receivables/reconcile.py` | | |
+| "TPA says paid, money not in bank" happens often enough to be worth an alert | `receivables/reconcile.py` | | |
 
 ## Results
 

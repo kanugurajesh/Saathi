@@ -17,14 +17,14 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
 from . import hms_webhook, llm
-from .claims import completeness, drafting, service
+from .claims import bill_scrub, completeness, drafting, service
 from .claims.extraction import extract_preauth
 from .config import ROOT, settings
 from .db import clean, get_db, now
 from .onboarding import service as onboarding
 from .portals import runner
 from .receivables import importer as rcv_import
-from .receivables import ledger, whatsapp
+from .receivables import ledger, reconcile, settlement, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -237,6 +237,73 @@ def mark_sent(draft_id: str, payload: dict = Body(default={})):
     return {"ok": True}
 
 
+# ------------------------------------------------------------------ discharge bill check
+
+BILL_SAMPLES = ROOT / "samples" / "bills"
+
+
+def _bill_presets() -> list[dict]:
+    return json.loads((BILL_SAMPLES / "presets.json").read_text(encoding="utf-8"))["bills"]
+
+
+def _run_bill_check(lines, policy, context, claim_id, source_file=None, parse=None) -> dict:
+    r = service.bill_check(lines, policy, context, claim_id=claim_id or None, source_file=source_file, parse=parse)
+    if r is None:
+        raise HTTPException(404, f"claim {claim_id} not found")
+    return clean(r)
+
+
+@app.post("/api/bill-check")
+def bill_check_json(payload: dict = Body(...)):
+    """For the HMS: send the final bill as JSON lines ({description, amount, department?, qty?, rate?, date?})
+    before discharge. With claim_id, the result is saved on the claim and the HMS gets a bill_checked event."""
+    if not payload.get("lines"):
+        raise HTTPException(400, "lines is required")
+    return _run_bill_check(payload["lines"], payload.get("policy"), payload.get("context"), payload.get("claim_id"),
+                           payload.get("source") or "HMS (JSON)")
+
+
+@app.post("/api/bill-check/upload")
+async def bill_check_upload(file: UploadFile = File(...), policy: str = Form("{}"), context: str = Form("{}"),
+                            claim_id: str = Form("")):
+    """The billing desk drops the itemised final-bill export (CSV / XLSX) from the HMS."""
+    try:
+        parsed = bill_scrub.parse_bill(await file.read(), file.filename or "bill.csv")
+        pol, ctx = json.loads(policy or "{}"), json.loads(context or "{}")
+    except (bill_scrub.BillError, json.JSONDecodeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return _run_bill_check(parsed["lines"], pol, ctx, claim_id, file.filename,
+                           {"mapping": parsed["mapping"], "skipped": parsed["skipped"]})
+
+
+@app.get("/api/bill-check/samples")
+def bill_check_samples():
+    db = get_db()
+    out = []
+    for p in _bill_presets():
+        c = db.claims.find_one({"portal_ref": p["portal_ref"]}, {"_id": 1, "fields.patient_name": 1})
+        out.append({**p, "claim_id": c["_id"] if c else None, "patient_name": (c or {}).get("fields", {}).get("patient_name")})
+    return out
+
+
+@app.post("/api/bill-check/sample")
+def bill_check_sample(payload: dict = Body(...)):
+    preset = next((p for p in _bill_presets() if p["file"] == payload.get("file")), None)
+    if not preset:
+        raise HTTPException(404, "unknown sample bill")
+    parsed = bill_scrub.parse_bill((BILL_SAMPLES / preset["file"]).read_bytes(), preset["file"])
+    return _run_bill_check(parsed["lines"], payload.get("policy") or preset["policy"], payload.get("context") or preset["context"],
+                           payload.get("claim_id"), preset["file"], {"mapping": parsed["mapping"], "skipped": parsed["skipped"]})
+
+
+@app.get("/api/claims/{claim_id}/bill-check")
+def claim_bill_check(claim_id: str):
+    r = service.latest_bill_check(claim_id)
+    if not r:
+        raise HTTPException(404, "no bill check for this claim yet")
+    return clean(r)
+
+
 # ------------------------------------------------------------------ portal automation
 
 @app.post("/api/sync")
@@ -438,6 +505,63 @@ def whatsapp_send():
 @app.get("/api/receivables/whatsapp/outbox")
 def whatsapp_outbox():
     return whatsapp.outbox()
+
+
+# ------------------------------------------------------------------ payment matching (bank statement + settlement letters)
+
+RECON_SAMPLES = ROOT / "samples" / "settlements"
+
+
+@app.get("/api/reconcile")
+def reconcile_view():
+    return clean(reconcile.reconcile())
+
+
+@app.post("/api/reconcile/letters")
+async def reconcile_letters(files: list[UploadFile] = File(...)):
+    """Settlement letters / payment advice from TPAs (PDF, text or email). Each is checked before it is used."""
+    letters = [reconcile.add_letter(settlement.read_letter(await f.read(), f.filename or "letter.txt")) for f in files]
+    return {"letters": letters, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/statement")
+async def reconcile_statement(file: UploadFile = File(...)):
+    try:
+        st = reconcile.add_statement(await file.read(), file.filename or "statement.csv")
+    except reconcile.StatementError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"statement": st, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/sample")
+def reconcile_sample():
+    """Demo: this week's TPA letters and the hospital's current-account statement."""
+    from scripts.seed import sample_shift_days
+
+    sh = sample_shift_days()
+    letters = [reconcile.add_letter(settlement.read_letter(p.read_bytes(), p.name, shift_days=sh))
+               for p in sorted(RECON_SAMPLES.glob("*.txt"))]
+    stmt = RECON_SAMPLES / "bank_statement_current_account.csv"
+    st = reconcile.add_statement(stmt.read_bytes(), stmt.name, shift_days=sh)
+    return {"letters": letters, "statement": st, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/confirm")
+def reconcile_confirm(payload: dict = Body(...)):
+    try:
+        res = reconcile.confirm(payload.get("credit_id", ""), payload.get("receivable_ids") or [], payload.get("mode", "gross"))
+    except reconcile.MatchError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"confirmed": res, **clean(reconcile.reconcile())}
+
+
+@app.post("/api/reconcile/letters/{letter_id:path}/approve")
+def reconcile_approve(letter_id: str, payload: dict = Body(default={})):
+    try:
+        reconcile.approve_letter(letter_id, payload.get("corrections"))
+    except reconcile.MatchError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return clean(reconcile.reconcile())
 
 
 # ------------------------------------------------------------------ onboarding

@@ -20,8 +20,10 @@
     <button data-view="bots">🤖 Portal bots &amp; OTP</button>
     <button data-view="intake">🧾 AI pre-auth intake</button>
     <button data-view="drafts">✉️ Correspondence</button>
+    <button data-view="billcheck">🧮 Discharge bill check</button>
     <div class="sect">Revenue cycle</div>
     <button data-view="receivables">💰 Receivables &amp; WhatsApp</button>
+    <button data-view="recon">🏦 Payment matching</button>
     <div class="sect">Hospital onboarding</div>
     <button data-view="onboarding">🚀 Onboarding copilot</button>
     <div class="sect">Integration</div>
@@ -116,6 +118,46 @@
       </div>
     </section>
 
+    <!-- ============================================================ BILL CHECK -->
+    <section class="view" id="view-billcheck">
+      <h1>Discharge bill check</h1>
+      <p class="sub">Run the final itemised bill against the policy terms <b>before</b> it goes to the TPA. It predicts what will be cut, line by line:
+        items on IRDAI's standard non-payable lists, room rent above the limit (and the proportionate cut on linked charges), package rate, sub-limit,
+        co-pay and sum insured. It flags a needed enhancement while there is still time, and drafts a note telling the family their share.
+        Rules, not AI: every rupee traces to a line and a rule.</p>
+      <div class="grid g-2">
+        <div class="card">
+          <h2>1 · Final bill</h2>
+          <div class="drop" id="billDrop">Drop the itemised final-bill export from the HMS (CSV / XLSX)<input type="file" id="billIn" hidden></div>
+          <div class="row" style="margin-top:10px"><span class="small muted">or try a sample:</span>
+            <select id="billSample" style="width:auto;max-width:100%" onchange="billPreset()"></select>
+            <button class="btn sm primary" onclick="billRunSample()">Check sample bill</button></div>
+          <div class="row" style="margin-top:12px"><label class="small" style="flex:1">Link to claim (saves the result, alerts the desk, notifies the HMS)
+            <select id="billClaim"></select></label></div>
+        </div>
+        <div class="card">
+          <h2>2 · Policy terms <span class="muted small">(from the e-card / policy schedule)</span></h2>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px" id="billPolicy">
+            <div><label class="f">Sum insured ₹</label><input type="number" name="sum_insured" min="0"></div>
+            <div><label class="f">Balance SI ₹ <span class="muted">(if used)</span></label><input type="number" name="balance_sum_insured" min="0"></div>
+            <div><label class="f">Room-rent limit</label><input type="text" name="room_rent_limit" placeholder="1% or 3000/day"></div>
+            <div><label class="f">ICU limit</label><input type="text" name="icu_limit" placeholder="2% or 6000/day"></div>
+            <div><label class="f">Co-pay %</label><input type="number" name="copay_pct" min="0" max="100"></div>
+            <div><label class="f">Agreed package ₹</label><input type="number" name="package_rate" min="0"></div>
+            <div><label class="f">Sub-limit</label><input type="text" name="sublimit_label" placeholder="e.g. Cataract (per eye)"></div>
+            <div><label class="f">Sub-limit ₹</label><input type="number" name="sublimit_amount" min="0"></div>
+            <div><label class="f">Pre-auth approved ₹</label><input type="number" name="approved_amount" data-ctx min="0"></div>
+            <div><label class="f">Expected stay (days)</label><input type="number" name="los_days" data-ctx min="0"></div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="small"><input type="checkbox" name="proportionate_clause" id="billProp" checked> Proportionate-deduction clause</label>
+            <label class="small"><input type="checkbox" name="consumables_rider" id="billRider"> Consumables rider (pays IRDAI-listed items)</label>
+          </div>
+        </div>
+      </div>
+      <div id="billResult" style="margin-top:16px"></div>
+    </section>
+
     <!-- ============================================================ RECEIVABLES -->
     <section class="view" id="view-receivables">
       <h1>Receivables &amp; daily WhatsApp summary</h1>
@@ -173,6 +215,30 @@
           <label class="small"><input type="checkbox" id="rcvOpen" checked onchange="loadRcvList()"> unpaid only</label></div>
         <div class="scroll"><table id="rcvTable"></table></div>
       </div>
+    </section>
+
+    <!-- ============================================================ PAYMENT MATCHING -->
+    <section class="view" id="view-recon">
+      <h1>Payment matching</h1>
+      <p class="sub">TPAs and trusts pay in lump sums, and the bank narration names the payer and a UTR, never the claims. Drop in the
+        TPAs' settlement letters and the bank statement: each credit is tied to the claims it pays, with TDS and every deduction reason,
+        and the receivables ledger updates itself. Only exact UTR matches with letters that add up are applied automatically;
+        everything else waits for a person.</p>
+      <div class="grid g-2">
+        <div class="card">
+          <h2>Settlement letters <span class="muted small">(payment advice from TPAs: PDF, text, email)</span></h2>
+          <div class="drop" id="ltrDrop">Drop settlement letters<input type="file" id="ltrIn" multiple hidden></div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" onclick="reconSample()">Load this week's sample letters + bank statement</button></div>
+          <div class="small muted" style="margin-top:6px">5 TPA letters and a current-account statement: a lump sum covering two claims, a letter
+            that doesn't add up, a payment the bank never received, a trust payment with no letter.</div>
+        </div>
+        <div class="card">
+          <h2>Bank statement <span class="muted small">(CSV / XLSX from net banking)</span></h2>
+          <div class="drop" id="stmtDrop">Drop the current-account statement<input type="file" id="stmtIn" hidden></div>
+          <div id="stmtInfo" class="small muted" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div id="reconResult" style="margin-top:16px"></div>
     </section>
 
     <!-- ============================================================ ONBOARDING -->

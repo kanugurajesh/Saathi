@@ -16,7 +16,7 @@ from pymongo import ReturnDocument
 from .. import hms_webhook
 from ..alerts import raise_alert, resolve_alerts
 from ..db import clean, get_db, now
-from . import completeness, drafting
+from . import bill_scrub, completeness, drafting
 from .status import TERMINAL, Status, normalize, sla_state
 
 log = logging.getLogger(__name__)
@@ -175,6 +175,63 @@ def sla_sweep(at: datetime | None = None) -> list[dict]:
         if a:
             fired.append(clean(a))
     return fired
+
+
+# ------------------------------------------------------------------ discharge bill check
+
+def _given(d: dict | None) -> dict:
+    return {k: v for k, v in (d or {}).items() if v not in (None, "")}
+
+
+def bill_check(lines: list[dict], policy: dict | None = None, context: dict | None = None, *,
+               claim_id: str | None = None, source_file: str | None = None, parse: dict | None = None) -> dict | None:
+    """Run the bill check. With a claim_id, policy and context default from the claim (sum insured, pre-auth
+    approval, expected stay...), and the result is saved on the claim: audit event, HMS webhook, alerts.
+    Returns None when the claim does not exist."""
+    db = get_db()
+    claim = db.claims.find_one({"_id": claim_id}) if claim_id else None
+    if claim_id and not claim:
+        return None
+    pol, ctx = _given(policy), _given(context)
+    if claim:
+        f = claim.get("fields") or {}
+        pol = {**_given({"sum_insured": claim.get("sum_insured")}), **_given(claim.get("policy")), **pol}
+        ctx = {**_given({"patient_name": f.get("patient_name"), "payer": claim.get("tpa_name") or f.get("insurer"),
+                         "hospital": claim.get("hospital"), "los_days": f.get("expected_los_days"),
+                         "approved_amount": claim.get("approved_amount")}), **ctx}
+    result = bill_scrub.scrub(lines, pol, ctx)
+    result.update({"source_file": source_file, "parse": parse, "claim_id": claim_id})
+    if not claim:
+        return result
+
+    ts = now()
+    doc = {**result, "created_at": ts}
+    db.bill_checks.insert_one(doc)
+    result["_id"] = str(doc["_id"])
+    summary = {"check_id": result["_id"], "at": ts, "source_file": source_file,
+               **{k: result[k] for k in ("bill_total", "expected_payable", "patient_share", "predicted_deduction",
+                                         "deduction_pct", "by_reason")},
+               "blockers": sum(x["severity"] == "blocker" for x in result["findings"])}
+    db.claims.update_one({"_id": claim_id}, {"$set": {"bill_check": summary, "policy": pol, "updated_at": ts}})
+    _event(claim_id, "bill_checked", {k: result[k] for k in ("bill_total", "expected_payable", "patient_share")})
+
+    inr = bill_scrub._inr
+    who = f"{ctx.get('patient_name') or 'Unknown patient'} ({claim.get('portal_ref') or claim_id})"
+    resolve_alerts(f"bill:{claim_id}:")  # a re-check replaces the previous check's alerts
+    enh = next((x for x in result["findings"] if x["rule"] == "enhancement"), None)
+    if enh:
+        raise_alert("enhancement_needed", "critical", f"Raise an enhancement before discharge - {who}", enh["message"],
+                    claim_id=claim_id, dedupe_key=f"bill:{claim_id}:enhancement")
+    if result["patient_share"] > 0:
+        why = ", ".join(f"{r['category'].lower()} {inr(r['amount'])}" for r in result["by_reason"][:3])
+        raise_alert("patient_share", "warning", f"Patient pays ~{inr(result['patient_share'])} at discharge - {who}",
+                    f"Tell the family before discharge ({why}). The note for the family is drafted in Discharge bill check.",
+                    claim_id=claim_id, dedupe_key=f"bill:{claim_id}:share")
+    return result
+
+
+def latest_bill_check(claim_id: str) -> dict | None:
+    return get_db().bill_checks.find_one({"claim_id": claim_id}, sort=[("created_at", -1)])
 
 
 # ------------------------------------------------------------------ read models
