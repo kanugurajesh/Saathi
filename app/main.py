@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
 from . import hms_webhook, llm
-from .claims import completeness, drafting, service
+from .claims import bill_scrub, completeness, drafting, service
 from .claims.extraction import extract_preauth
 from .config import ROOT, settings
 from .db import clean, get_db, now
@@ -235,6 +235,73 @@ def mark_sent(draft_id: str, payload: dict = Body(default={})):
         db.claims.update_one({"_id": d["claim_id"]}, {"$set": {"query.answered_at": now()}})
     service._event(d["claim_id"], "correspondence_sent", {"kind": d["kind"], "subject": d["subject"]})
     return {"ok": True}
+
+
+# ------------------------------------------------------------------ discharge bill check
+
+BILL_SAMPLES = ROOT / "samples" / "bills"
+
+
+def _bill_presets() -> list[dict]:
+    return json.loads((BILL_SAMPLES / "presets.json").read_text(encoding="utf-8"))["bills"]
+
+
+def _run_bill_check(lines, policy, context, claim_id, source_file=None, parse=None) -> dict:
+    r = service.bill_check(lines, policy, context, claim_id=claim_id or None, source_file=source_file, parse=parse)
+    if r is None:
+        raise HTTPException(404, f"claim {claim_id} not found")
+    return clean(r)
+
+
+@app.post("/api/bill-check")
+def bill_check_json(payload: dict = Body(...)):
+    """For the HMS: send the final bill as JSON lines ({description, amount, department?, qty?, rate?, date?})
+    before discharge. With claim_id, the result is saved on the claim and the HMS gets a bill_checked event."""
+    if not payload.get("lines"):
+        raise HTTPException(400, "lines is required")
+    return _run_bill_check(payload["lines"], payload.get("policy"), payload.get("context"), payload.get("claim_id"),
+                           payload.get("source") or "HMS (JSON)")
+
+
+@app.post("/api/bill-check/upload")
+async def bill_check_upload(file: UploadFile = File(...), policy: str = Form("{}"), context: str = Form("{}"),
+                            claim_id: str = Form("")):
+    """The billing desk drops the itemised final-bill export (CSV / XLSX) from the HMS."""
+    try:
+        parsed = bill_scrub.parse_bill(await file.read(), file.filename or "bill.csv")
+        pol, ctx = json.loads(policy or "{}"), json.loads(context or "{}")
+    except (bill_scrub.BillError, json.JSONDecodeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return _run_bill_check(parsed["lines"], pol, ctx, claim_id, file.filename,
+                           {"mapping": parsed["mapping"], "skipped": parsed["skipped"]})
+
+
+@app.get("/api/bill-check/samples")
+def bill_check_samples():
+    db = get_db()
+    out = []
+    for p in _bill_presets():
+        c = db.claims.find_one({"portal_ref": p["portal_ref"]}, {"_id": 1, "fields.patient_name": 1})
+        out.append({**p, "claim_id": c["_id"] if c else None, "patient_name": (c or {}).get("fields", {}).get("patient_name")})
+    return out
+
+
+@app.post("/api/bill-check/sample")
+def bill_check_sample(payload: dict = Body(...)):
+    preset = next((p for p in _bill_presets() if p["file"] == payload.get("file")), None)
+    if not preset:
+        raise HTTPException(404, "unknown sample bill")
+    parsed = bill_scrub.parse_bill((BILL_SAMPLES / preset["file"]).read_bytes(), preset["file"])
+    return _run_bill_check(parsed["lines"], payload.get("policy") or preset["policy"], payload.get("context") or preset["context"],
+                           payload.get("claim_id"), preset["file"], {"mapping": parsed["mapping"], "skipped": parsed["skipped"]})
+
+
+@app.get("/api/claims/{claim_id}/bill-check")
+def claim_bill_check(claim_id: str):
+    r = service.latest_bill_check(claim_id)
+    if not r:
+        raise HTTPException(404, "no bill check for this claim yet")
+    return clean(r)
 
 
 # ------------------------------------------------------------------ portal automation

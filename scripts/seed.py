@@ -20,7 +20,7 @@ RECEIVABLES_AS_OF = date(2026, 11, 4)
 RECEIVABLE_FILES = [("tpa_outstanding_hms_billing.csv", "private_tpa", 20), ("aarogyasri_claims_export.csv", "aarogyasri", 20),
                     ("ehs_claims_export.csv", "ehs", 21), ("pmjay_tms_export.csv", "pmjay", 72)]
 TODAY_SAMPLE = "aarogyasri_claims_export_today.csv"
-RECEIVABLE_COLLS = ("receivables", "receivable_events", "receivable_imports", "whatsapp_outbox")
+RECEIVABLE_COLLS = ("receivables", "receivable_events", "receivable_imports", "whatsapp_outbox", "bill_checks")
 
 
 def sample_shift_days() -> int:

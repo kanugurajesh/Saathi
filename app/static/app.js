@@ -101,6 +101,11 @@ const openClaim = guard(async (id) => {
     <div class="card"><div class="row"><h3 style="margin:0">Query-risk screen</h3><span class="chip ${comp.query_risk === "high" ? "bad" : comp.query_risk === "medium" ? "warn" : "ok"}">risk: ${esc(comp.query_risk)}</span>
       <span class="spacer"></span><span class="small muted">Documents: ${(c.documents || []).map((d) => `<span class="chip">${esc(d)}</span>`).join(" ") || "none"}</span></div>
       <div style="margin-top:10px">${findings(comp)}</div></div>
+    ${c.bill_check ? `<div class="card"><div class="row"><h3 style="margin:0">Discharge bill check</h3><span class="spacer"></span>
+      <button class="btn sm" onclick="openBillCheck('${esc(c._id)}')">Open</button></div>
+      <div class="kv" style="margin-top:10px"><div><span>final bill</span><b>${rs(c.bill_check.bill_total)}</b></div><div><span>TPA expected to pay</span><b>${rs(c.bill_check.expected_payable)}</b></div>
+      <div><span>patient pays</span><b>${rs(c.bill_check.patient_share)}</b></div><div><span>checked</span><b>${ago(c.bill_check.at)}</b></div></div>
+      ${c.bill_check.blockers ? '<div class="chip bad" style="margin-top:8px">enhancement needed before discharge</div>' : ""}</div>` : ""}
     <div class="card"><h3>Correspondence</h3>${drafts.map((d) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span class="chip brand">${esc(d.kind)}</span>
       ${safetyChip(d.safety.status)}<span class="small">${esc(d.subject)}</span><span class="spacer"></span><button class="btn sm" onclick="closeDrawer();openDraft('${esc(d._id)}')">Open</button></div>`).join("") || '<div class="muted small">None yet</div>'}</div>
     <div class="card"><h3>Audit trail</h3><ul class="timeline">${events.map((e) => `<li><b>${esc(e.kind.replaceAll("_", " "))}</b>
@@ -311,7 +316,7 @@ async function loadRcvList() {
       <td class="num" data-label="Age">${r.age_days ?? "–"}${r.age_days !== null ? '<div class="small muted">days</div>' : ""}</td>
       <td class="num" data-label="Billed">${inr(r.billed)}</td><td class="num" data-label="Approved">${inr(r.approved)}</td><td class="num" data-label="Paid">${inr(r.paid)}${r.tds ? `<div class="small muted">+ TDS ${inr(r.tds)}</div>` : ""}</td>
       <td class="num" data-label="Outstanding"><b>${r.outstanding ? inr(r.outstanding) : "–"}</b></td>
-      <td class="small">${r.deduction ? `<b>${inr(r.deduction)}</b> ` : r.denied_amount ? `<b>${inr(r.denied_amount)}</b> ` : ""}${r.reason_category ? `<span class="chip">${esc(r.reason_category)}</span>` : ""}<div class="muted">${esc(r.remarks || "")}</div></td></tr>`).join("")
+      <td class="small">${r.deduction ? `<b>${inr(r.deduction)}</b> ` : r.denied_amount ? `<b>${inr(r.denied_amount)}</b> ` : ""}${r.reason_category ? `<span class="chip">${esc(r.reason_category)}</span>` : ""}<div class="muted">${esc(r.remarks || "")}</div>${r.predicted_deduction != null ? `<div class="muted" title="From the discharge bill check, before the bill went out">predicted at discharge: ${rs(r.predicted_deduction)}</div>` : ""}</td></tr>`).join("")
       || `<tr><td colspan="10" class="empty">No claims</td></tr>`) + "</tbody>";
 }
 function rcvFilterTo(pt) { $("#rcvFilter").value = pt; loadRcvList(); $("#rcvTable").scrollIntoView({ behavior: "smooth", block: "start" }); }
@@ -337,6 +342,106 @@ const rcvManual = guard(async () => {
   toast(`${r.created ? "Added" : "Updated"} ${r.receivable.claim_ref}`); document.querySelectorAll("#rcvForm input").forEach((i) => (i.value = "")); loadReceivables();
 });
 const waSend = guard(async () => { const d = await api("/api/receivables/whatsapp/send", { method: "POST" }); toast(d.status === "sent" ? "Summary sent on WhatsApp" : d.status === "dry_run" ? "Dry run: written to the outbox (WhatsApp not configured)" : "⚠ " + d.detail, 5000); loadReceivables(); });
+
+/* ------------------------------------------------------------------ discharge bill check */
+const rs = (n) => inr(n === null || n === undefined ? n : Math.round(n));
+const billState = { presets: [], init: false };
+async function loadBillCheck() {
+  if (!billState.presets.length) {
+    billState.presets = await api("/api/bill-check/samples");
+    $("#billSample").innerHTML = billState.presets.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("");
+  }
+  const claims = await api("/api/claims");
+  const cur = $("#billClaim").value;
+  $("#billClaim").innerHTML = '<option value="">Not linked: preview only</option>' + claims.map((c) =>
+    `<option value="${esc(c._id)}">${esc(c._id)} · ${esc(c.fields?.patient_name || "unknown")} · ${esc(c.fields?.proposed_procedure || c.fields?.provisional_diagnosis || "")}</option>`).join("");
+  $("#billClaim").value = cur;
+  if (!billState.init) { billState.init = true; billPreset(); }
+}
+function billPreset() {
+  const p = billState.presets[Number($("#billSample").value)];
+  if (!p) return;
+  document.querySelectorAll("#billPolicy [name]").forEach((i) => { i.value = (i.hasAttribute("data-ctx") ? p.context : p.policy)[i.name] ?? ""; });
+  $("#billProp").checked = p.policy.proportionate_clause !== false;
+  $("#billRider").checked = !!p.policy.consumables_rider;
+  $("#billClaim").value = p.claim_id || "";
+}
+function billTerms() {
+  const policy = {}, context = {};
+  document.querySelectorAll("#billPolicy [name]").forEach((i) => {
+    if (i.value.trim() === "") return;
+    (i.hasAttribute("data-ctx") ? context : policy)[i.name] = i.type === "number" ? Number(i.value) : i.value.trim();
+  });
+  policy.proportionate_clause = $("#billProp").checked;
+  policy.consumables_rider = $("#billRider").checked;
+  return { policy, context };
+}
+const billLoading = () => ($("#billResult").innerHTML = '<div class="card empty"><span class="spin"></span> Checking the bill…</div>');
+const billRunSample = guard(async () => {
+  const p = billState.presets[Number($("#billSample").value)];
+  billLoading();
+  try { renderBill(await api("/api/bill-check/sample", { method: "POST", json: { file: p.file, ...billTerms(), claim_id: $("#billClaim").value || null } })); }
+  catch (e) { $("#billResult").innerHTML = ""; throw e; }
+});
+const billUpload = guard(async (files) => {
+  const fd = new FormData(), t = billTerms();
+  fd.append("file", files[0]); fd.append("policy", JSON.stringify(t.policy)); fd.append("context", JSON.stringify(t.context)); fd.append("claim_id", $("#billClaim").value);
+  billLoading();
+  try { renderBill(await api("/api/bill-check/upload", { method: "POST", body: fd })); } catch (e) { $("#billResult").innerHTML = ""; throw e; }
+});
+const openBillCheck = guard(async (id) => {
+  const r = await api(`/api/claims/${id}/bill-check`);
+  closeDrawer(); show("billcheck"); await loadBillCheck(); renderBill(r);
+});
+const copyBillNote = guard(async () => { await navigator.clipboard.writeText($("#billNote").textContent); toast("Note copied"); });
+const LIST_SHORT = { 1: "IRDAI List I", 2: "IRDAI List II", 3: "IRDAI List III", 4: "IRDAI List IV" };
+const CAT_LABEL = { room: "Room", icu: "ICU", nursing: "Nursing", consultation: "Doctor visits", surgery: "Surgery / OT", investigation: "Investigations",
+  pharmacy: "Pharmacy", consumables: "Consumables", implant: "Implant", blood: "Blood", discount: "Discount", other: "Other" };
+function renderBill(r) {
+  if (r.claim_id) $("#billClaim").value = r.claim_id;
+  const enh = r.findings.find((f) => f.rule === "enhancement");
+  const appr = r.context?.approved_amount;
+  $("#billResult").innerHTML = `<div class="grid g-kpi">${[
+    ["Final bill", rs(r.bill_total), `${r.lines.length} lines${r.source_file ? " · " + esc(r.source_file) : ""}`],
+    ["TPA expected to pay", rs(r.expected_payable), `admissible before policy limits ${rs(r.admissible)}`],
+    ["Patient pays at discharge", rs(r.patient_share), `${r.deduction_pct}% of the bill`, r.patient_share > 0 ? "warn" : ""],
+    ["Enhancement needed", enh ? rs(enh.amount) : "No", enh ? `pre-auth approved ${rs(appr)}: raise it before discharge` : appr ? `within the pre-auth approval of ${rs(appr)}` : "pre-auth amount not given", enh ? "bad" : ""],
+  ].map(([l, v, h, cls]) => `<div class="card kpi ${cls || ""}"><div class="label">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join("")}</div>
+  <div class="grid g-2">
+    <div class="card">
+      ${reasonList("What the TPA will cut", r.by_reason.map((x) => ({ ...x, amount: Math.round(x.amount) })), "(predicted)")}
+      <div class="math"><span>Final bill</span><span>${rs(r.bill_total)}</span>
+        <span>− cut line by line (IRDAI lists, room rent, package)</span><span>${rs(r.bill_total - r.admissible)}</span>
+        ${r.adjustments.map((a) => `<span>− ${esc(a.label)}</span><span>${rs(a.amount)}</span>`).join("")}
+        <span class="tot">TPA expected to pay</span><span class="tot">${rs(r.expected_payable)}</span></div>
+      <h3>For the desk</h3>
+      ${r.findings.map((f) => `<div class="finding ${esc(f.severity)}"><b>${esc(f.message)}</b><div class="fx">Fix: ${esc(f.fix)}</div></div>`).join("") || '<div class="chip ok">Nothing to fix: the bill is clean for this policy</div>'}
+    </div>
+    <div class="card">
+      <div class="row"><h2 style="margin:0">Note for the family</h2><span class="spacer"></span><button class="btn sm" onclick="copyBillNote()">Copy</button></div>
+      <div class="small muted" style="margin:6px 0 10px">Give this at the bedside before discharge, not at the billing counter. Nothing is sent automatically.</div>
+      <div class="preview" id="billNote">${esc(r.patient_note)}</div>
+      <div style="margin-top:12px">${r.claim_id ? `<span class="chip ok">Saved to ${esc(r.claim_id)}</span> <a class="small" href="#" onclick="show('command');openClaim('${esc(r.claim_id)}');return false">open claim</a>
+        <div class="small muted" style="margin-top:4px">The desk got an alert, the HMS got a <span class="mono">bill_checked</span> event, and the receivables ledger will compare this prediction with what the TPA actually cuts.</div>`
+        : '<span class="chip">Preview only: not linked to a claim</span>'}</div>
+      ${r.assumptions.length ? `<h3 style="margin-top:14px">Assumptions</h3>${r.assumptions.map((a) => `<div class="small muted">• ${esc(a)}</div>`).join("")}` : ""}
+    </div>
+  </div>
+  <div class="card flush" style="margin-top:16px">
+    <div class="row" style="padding:14px 16px 4px"><h2 style="margin:0">Line by line</h2><span class="spacer"></span><span class="small muted">highlighted lines will be cut</span></div>
+    <div class="scroll"><table id="billLines"><thead><tr><th>Row</th><th>Item</th><th>Category</th><th class="num">Billed</th><th class="num">TPA pays</th><th class="num">Cut</th><th>Why</th></tr></thead><tbody>
+    ${r.lines.map((x) => `<tr class="${x.deduction > 0 ? "cut" : ""}"><td class="small muted">${esc(x.row)}</td>
+      <td>${esc(x.description)}${x.qty && x.qty !== 1 ? `<div class="small muted">${esc(x.qty)} × ${rs(x.rate ?? x.amount / x.qty)}</div>` : ""}</td>
+      <td class="small">${esc(CAT_LABEL[x.category] || x.category)}</td><td class="num">${rs(x.amount)}</td><td class="num">${rs(x.payable)}</td>
+      <td class="num">${x.deduction > 0 ? `<b>${rs(x.deduction)}</b>` : "–"}</td>
+      <td class="small">${x.irdai_list ? `<span class="chip warn">${LIST_SHORT[x.irdai_list]}</span> ` : ""}${x.deduction > 0 && !x.irdai_list ? esc(x.rule) : ""}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td></td><td>Total</td><td></td><td class="num">${rs(r.bill_total)}</td><td class="num">${rs(r.admissible)}</td><td class="num">${rs(r.bill_total - r.admissible)}</td>
+      <td class="small muted">before sub-limit / co-pay / sum insured</td></tr></tfoot></table></div>
+    ${r.parse ? `<details style="padding:0 16px 14px"><summary class="small">How the file was read</summary><div class="small" style="margin-top:6px">
+      ${r.parse.mapping.map((m) => `<span class="mono">${esc(m.source)}</span> → ${m.field ? esc(m.field) : '<span class="muted">ignored</span>'}`).join(" · ")}</div>
+      ${r.parse.skipped.map((s) => `<div class="small muted">Row ${esc(s.row)} skipped: ${esc(s.reason)}</div>`).join("")}</details>` : ""}
+  </div>`;
+}
 
 /* ------------------------------------------------------------------ onboarding */
 const runOnboardingSample = guard(async () => { $("#obResult").innerHTML = '<div class="card empty"><span class="spin"></span> Processing…</div>'; renderJob(await api("/api/onboarding/sample", { method: "POST" })); });
@@ -386,12 +491,14 @@ async function refresh() {
     else if (state.view === "bots") await loadBots();
     else if (state.view === "drafts") await loadDrafts();
     else if (state.view === "receivables") await loadReceivables();
+    else if (state.view === "billcheck") await loadBillCheck();
   } catch (e) { console.error(e); }
 }
 (async function boot() {
   wireDrop("#drop", "#fileIn", runExtract);
   wireDrop("#obDrop", "#obIn", runOnboarding);
   wireDrop("#rcvDrop", "#rcvIn", rcvUpload);
+  wireDrop("#billDrop", "#billIn", billUpload);
   const samples = await api("/api/samples/documents");
   $("#sampleSel").innerHTML = samples.map((s) => `<option>${esc(s)}</option>`).join("");
   $("#obProfile").value = JSON.stringify(await api("/api/onboarding/sample-profile"), null, 2);

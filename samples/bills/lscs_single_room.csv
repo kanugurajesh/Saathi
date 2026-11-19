@@ -1,0 +1,40 @@
+Date,Particulars,Qty,Rate,Amount
+,ROOM CHARGES,,,
+04/11/2026,Single Private Room Rent,4,4500,18000
+04/11/2026,Nursing Charges,4,800,3200
+,CONSULTATION,,,
+04/11/2026,Obstetrician Visit - Dr. P. Swathi,4,600,2400
+05/11/2026,Paediatrician Visit (newborn),1,1500,1500
+,SURGERY,,,
+04/11/2026,Surgeon Fee - Elective Repeat LSCS,1,18000,18000
+04/11/2026,Anaesthetist Fee,1,6000,6000
+04/11/2026,OT Charges,1,9000,9000
+,INVESTIGATIONS,,,
+04/11/2026,CBC,1,450,450
+04/11/2026,Blood Grouping & Rh Typing,1,300,300
+04/11/2026,USG Obstetric,1,1200,1200
+05/11/2026,Serum Electrolytes,1,650,650
+,PHARMACY,,,
+04/11/2026,Inj. Cefuroxime 1.5 g,6,390,2340
+04/11/2026,Inj. Oxytocin 5 IU,2,210,420
+04/11/2026,Inj. Bupivacaine Heavy 0.5% (spinal),1,310,310
+04/11/2026,IV Fluids RL / DNS 500 ml,8,120,960
+05/11/2026,Tab. Paracetamol 650 mg,20,6,120
+05/11/2026,Inj. Tramadol 50 mg,4,95,380
+,CONSUMABLES,,,
+04/11/2026,Sutures (Vicryl 1-0),2,650,1300
+04/11/2026,IV Cannula 20G,2,180,360
+04/11/2026,Foley Catheter 14 Fr,1,240,240
+04/11/2026,Syringes and needles,1,420,420
+04/11/2026,Surgical Gloves (pairs),8,80,640
+04/11/2026,Admission Kit,1,450,450
+04/11/2026,Abdominal Binder,1,650,650
+04/11/2026,Sanitary Pads,1,280,280
+05/11/2026,Diapers (newborn),1,350,350
+04/11/2026,Gauze and Cotton,1,520,520
+04/11/2026,Disposable OT Drapes,1,900,900
+,OTHER CHARGES,,,
+04/11/2026,Registration Charges,1,300,300
+04/11/2026,Diet Charges,4,400,1600
+04/11/2026,Baby Charges (cradle),4,250,1000
+,Grand Total,,,74240

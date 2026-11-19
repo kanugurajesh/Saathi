@@ -50,15 +50,15 @@ def _clean_header(h) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[_\-/.:#]+", " ", h)).strip()
 
 
-def map_columns(columns) -> dict[str, str]:
+def map_columns(columns, fields: dict[str, tuple[str, ...]] = FIELDS) -> dict[str, str]:
     """field -> source column. Best-scoring pairs are assigned first; each column is used once."""
     scored = []
     for col in columns:
         h = _clean_header(col)
-        for field, syns in FIELDS.items():
+        for field, syns in fields.items():
             s = 100 - syns.index(h) * 0.1 if h in syns else max(fuzz.ratio(h, x) for x in syns)  # earlier synonym wins ties
             if s >= MIN_HEADER_SCORE:
-                scored.append((s, -list(FIELDS).index(field), str(col), field))
+                scored.append((s, -list(fields).index(field), str(col), field))
     mapping: dict[str, str] = {}
     used: set[str] = set()
     for _, _, col, field in sorted(scored, reverse=True):

@@ -165,7 +165,8 @@ CLAIM_TO_RECEIVABLE = {"DISCHARGE_SUBMITTED": "PENDING", "QUERY_RAISED": "QUERY"
 
 def sync_from_claims() -> int:
     """A cashless claim becomes a receivable at discharge. Idempotent: unchanged claims write nothing.
-    Billed = the claim's requested amount (in production, the HMS final bill)."""
+    Billed = the final bill total when the discharge bill check has run, else the claim's requested amount.
+    The bill check's predicted deduction is carried along, so it can be compared with what the TPA actually cut."""
     db = get_db()
     n = 0
     for c in db.claims.find({"stage": "discharge", "portal_ref": {"$type": "string"}}):
@@ -175,10 +176,12 @@ def sync_from_claims() -> int:
         f = c.get("fields") or {}
         approved = c.get("approved_amount") if st in ("APPROVED", "PAID") else None
         exists = db.receivables.find_one({"_id": rid_for("private_tpa", c["portal_ref"])}, {"_id": 1})
+        bc = c.get("bill_check") or {}
         rec = {"payer_type": "private_tpa", "payer": c.get("tpa_name") or c.get("portal"), "claim_ref": c["portal_ref"],
                "patient_name": f.get("patient_name"), "uhid": f.get("uhid"),
                "package": f.get("proposed_procedure") or f.get("provisional_diagnosis"),
-               "billed": c.get("requested_amount") or approved, "approved": approved,
+               "billed": bc.get("bill_total") or c.get("requested_amount") or approved, "approved": approved,
+               "predicted_deduction": bc.get("predicted_deduction"),
                "paid": approved if st == "PAID" else None, "status": st,
                "submitted_on": None if exists else today_ist(c.get("status_since")).isoformat()}
         if rec["billed"] is None:

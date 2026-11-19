@@ -1,0 +1,28 @@
+{
+  "_note": "Synthetic final bills for the seeded demo claims. Policy terms are typical retail-policy terms, not any real insurer's.",
+  "bills": [
+    {
+      "file": "lscs_single_room.csv",
+      "label": "Repeat LSCS in a single room: room above the limit + maternity sub-limit",
+      "portal_ref": "NB-26-104902",
+      "policy": {"sum_insured": 300000, "room_rent_limit": "1%", "icu_limit": "2%",
+                 "sublimit_label": "Maternity (caesarean)", "sublimit_amount": 50000},
+      "context": {"los_days": 4, "approved_amount": 45000}
+    },
+    {
+      "file": "pfn_hip_fracture.csv",
+      "label": "Hip fracture nailing, senior citizen: 20% co-pay + non-payable consumables",
+      "portal_ref": "OR-2026-55120",
+      "policy": {"sum_insured": 500000, "room_rent_limit": "1%", "icu_limit": "2%", "copay_pct": 20},
+      "context": {"los_days": 5, "approved_amount": 150000}
+    },
+    {
+      "file": "cataract_daycare.csv",
+      "label": "Cataract day care with a premium lens: cataract sub-limit",
+      "portal_ref": "LT-88213",
+      "policy": {"sum_insured": 300000, "room_rent_limit": "1%",
+                 "sublimit_label": "Cataract (per eye)", "sublimit_amount": 40000},
+      "context": {"los_days": 1, "approved_amount": 35000}
+    }
+  ]
+}

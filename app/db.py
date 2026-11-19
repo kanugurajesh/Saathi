@@ -59,6 +59,7 @@ def _ensure_indexes(db):
     db.otp_requests.create_index([("status", ASCENDING), ("created_at", DESCENDING)])
     db.alerts.create_index([("created_at", DESCENDING)])
     db.drafts.create_index([("claim_id", ASCENDING), ("created_at", DESCENDING)])
+    db.bill_checks.create_index([("claim_id", ASCENDING), ("created_at", DESCENDING)])
     db.onboarding_jobs.create_index([("created_at", DESCENDING)])
     db.receivables.create_index([("payer_type", ASCENDING), ("status", ASCENDING)])
     db.receivable_events.create_index([("at", DESCENDING)])

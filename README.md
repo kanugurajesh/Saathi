@@ -42,6 +42,7 @@ the AI never invents a clinical fact, and every bot action is audited.
 |---|---|
 | **1. Onboarding blocker automation**: data migration, config, staff setup, go-live checks, monitoring | **Onboarding Copilot**: detects each file's type, maps messy columns (`Exp`, `P.Rate`, `Mfr`, `Reg. No`), normalises Indian formats and validates against GST, clinical and login rules. It scores go-live readiness against the deadline (ETA vs hours left), raises alerts *before* the deadline slips, and outputs a row-wise fix-list CSV, import-ready CSVs and a drafted message to the hospital admin. |
 | **2. AI layer for existing features**: Gemini 2.5 Flash via Vertex AI, accuracy and safety evaluation | **AI pre-auth intake**: Gemini extracts 24 pre-auth fields from case sheets, PDFs or images, and a **grounding check** verifies every value against the source. A **query-risk screen** predicts the TPA's queries before submission. `evals/` measures field accuracy, hallucination rate and safety-gate red-team cases. |
+| **Revenue cycle**: short-payments at discharge | **Discharge bill check**: runs the itemised final bill against the policy terms *before* it goes to the TPA. It predicts every cut line by line: IRDAI's standard non-payable lists, room rent above the limit and the proportionate cut on linked charges, package rate, sub-limit, co-pay and balance sum insured. It flags a needed enhancement while the patient is still admitted and drafts a note telling the family their share. |
 | **Revenue cycle**: the month-end blind spot | **Receivables tracker**: money owed per payer (private TPAs, Aarogyasri, EHS, PM-JAY), grouped by how long it has been unpaid (0-30 / 31-60 / 61-90 / 91-180 / 180+ days), with deductions and denials grouped by reason. It sends the owner a **daily WhatsApp summary** covering what came in, what was denied, what needs a reply, and which payer's data is stale. Private TPA claims flow in from the bots at discharge. The government schemes come in by CSV upload or manual entry. |
 | **3. Cross-application automation**: LLM correspondence, portal login and navigation, OTP flows, status into a queryable store, fallbacks for manual review | **ClaimPilot**: Playwright bots for 3 deliberately different portals. An **OTP ladder** tries the SMS forwarder first, then asks a human on the dashboard, then routes the claim to manual review. Statuses are normalised into one lifecycle in MongoDB with an event log. TPA query letters are fetched and a point-wise reply is **auto-drafted**. Escalation emails are drafted when IRDAI timelines are breached. |
 
@@ -129,7 +130,12 @@ The same image runs anywhere Docker does: `docker build -t claimpilot . && docke
    *stale* because its export is 3 days old. Click **Upload today's sample Aarogyasri export**: 3 claims are marked paid (₹2,43,600),
    one is denied, and a new consumables deduction appears. The WhatsApp preview's "since the last summary" section updates to match. **Send now** writes
    to the outbox (dry run) unless WhatsApp Cloud API keys are set.
-7. **Onboarding copilot**: *Run with sample legacy files*. It finds 6 blocking rows in the Marg export (expired stock,
+7. **Discharge bill check**: *Check sample bill* (Lakshmi Devi, repeat LSCS in a single room). The ₹74,240 bill is expected to
+   get ₹48,183 from the TPA. The room is ₹4,500/day against a ₹3,000 limit, which costs ₹6,000 directly plus 33.3% of nursing,
+   visits and surgeon/OT fees (₹13,367), and 10 lines are on IRDAI's lists (₹6,690). The expected payable is above the ₹45,000
+   pre-auth, so an enhancement alert fires, and the family gets a note saying ₹26,057 is theirs to pay. Try the other two samples
+   for co-pay (hip nailing, senior citizen) and a cataract sub-limit.
+8. **Onboarding copilot**: *Run with sample legacy files*. It finds 6 blocking rows in the Marg export (expired stock,
    MRP below purchase rate, duplicate batch...). It also finds a doctor without a registration number, a duplicate
    login phone, a rejected WhatsApp template and an extra zero in a tariff, and it predicts the go-live will be missed.
 
@@ -169,6 +175,7 @@ A reviewer should know exactly what this prototype proves and what it doesn't.
 | **Government schemes** (Aarogyasri, EHS, PM-JAY) | **Not scraped, by design.** Claims come in via the CSV export the billing desk already downloads. The export column layouts are **assumed** and need checking against real exports. |
 | **Bot engine** (retries, OTP fallback chain, failure taxonomy, idempotent sync, status normalisation) | **Real and tested.** 6 tests drive real Chromium against the mock portals. |
 | **Gemini 2.5 Flash extraction** | **Real.** Run live against `gemini-2.5-flash`. The 6 gold documents are synthetic, so this is a small-sample signal, not a benchmark. |
+| **Discharge bill check** | **Real logic, hand-entered policy terms.** The arithmetic (lists, room-rent ratio, package, sub-limit, co-pay, sum insured) is tested and reconciles line by line. The keyword lists follow IRDAI's standard Lists I-IV and common policy wording on proportionate deduction, but **haven't been checked against real TPA settlement letters**. Policy terms are typed in from the e-card; they are not read from the policy document. The 3 sample bills are synthetic. |
 | **Safety gate, grounding check, completeness rules** | **Real and tested.** The TPA query rules come from public TPA and IRDAI material and haven't yet been checked with a hospital TPA desk. That check is planned: [`docs/field_validation.md`](docs/field_validation.md). |
 | **Onboarding Copilot** | **Real logic, assumed targets.** Column mapping, validation and readiness scoring work. The target schemas in `onboarding/schemas.py` are my guess at an HMS import format, not HextGen's real one. |
 | **HMS integration** (REST in, signed webhook out) | **Real and tested** against the Node.js reference receiver in `integrations/hms-node/`. The admission payload shape is illustrative. HextGen's real IPD data model would replace it. |
@@ -293,6 +300,30 @@ Resolving an SLA alert happens automatically when the status moves.
 * A doctor without a council registration number blocks go-live, since it's printed on prescriptions and needed
   for TPA claims.
 
+## Discharge bill check
+
+Most cashless short-payments aren't judgement calls. They follow from the policy terms, so they can be computed before
+the bill is sent (`app/claims/bill_scrub.py`, rules only, no LLM):
+
+| Rule | What happens |
+|---|---|
+| **IRDAI List I** (gloves, crepe bandage, walker, attendant food...) | Not payable. The patient's share. |
+| **IRDAI Lists II-IV** (admission kit, gauze, X-ray film, registration, diet...) | Treated as part of room / procedure / treatment charges, so a separate line is disallowed. If the tariff already includes it, drop the line; otherwise it's the patient's share. A *consumables rider* makes these payable. |
+| **Room rent above the limit** (`1%` of SI or `₹/day`) | The excess is cut, and *associated* charges (nursing, doctor visits, surgeon / OT / anaesthetist, other) are cut in the same ratio. Pharmacy, consumables, implants and investigations are never cut proportionately; ICU is capped by its own limit. |
+| **Agreed package rate** | Charges inside the package are capped at the package price; implants are paid outside it. No proportionate deduction. |
+| **Sub-limit → co-pay → balance sum insured** | Applied in that order on the admissible amount. |
+| **Above the pre-auth approval** | Blocker: raise an enhancement before discharge. |
+
+It also flags possible duplicate lines, a lump-sum pharmacy line (TPAs query it) and more room days than the expected stay.
+The parser reads typical HMS exports: section headings (`PHARMACY`), sub-total and grand-total rows, and Indian amounts like `"2,500"`.
+Every line keeps the rule that cut it, so the desk can argue any rupee.
+
+**Where it plugs in.** The HMS can post the bill as JSON (`POST /api/bill-check` with `lines`, `policy` and `claim_id`), or the desk
+uploads the CSV / XLSX. Linked to a claim, the policy and context default from the claim (sum insured, pre-auth approval, expected stay).
+The result is saved on the claim, the desk gets *enhancement needed* and *patient share* alerts, and the HMS gets a `bill_checked`
+webhook. When the claim reaches the receivables ledger, the bill total becomes the billed amount and the **predicted deduction sits next to
+the deduction the TPA actually made**. Over time that comparison is the accuracy measure, per reason and per TPA.
+
 ## Receivables and the daily WhatsApp summary
 
 **What the bots can and can't see.** The portal bots log into private TPA portals only. **They cannot log into the
@@ -342,7 +373,7 @@ real phone. The scheduled send runs once per IST day. A failed send raises a das
 ## Evals and tests
 
 ```bash
-uv run pytest                          # 50 tests, including 6 that drive real Chromium against the portals
+uv run pytest                          # 93 tests, including 6 that drive real Chromium against the portals
 (cd integrations/hms-node && node --test)   # 3 tests for the Node.js HMS-side reference
 uv run python -m evals.run_evals       # writes evals/report_<engine>.md
 ```
@@ -398,7 +429,7 @@ The latest report is in [`evals/report_gemini.md`](evals/report_gemini.md).
 app/
   llm.py                 Gemini (Vertex AI / AI Studio) + deterministic fallback + call logging
   hms_webhook.py         signed, durable, per-claim-ordered claim events to the HMS
-  claims/                status lifecycle & SLA · extraction + grounding · completeness rules · drafting + safety gate · event engine
+  claims/                status lifecycle & SLA · extraction + grounding · completeness rules · discharge bill check · drafting + safety gate · event engine
   portals/               base (failure taxonomy, retries) · otp broker · nimbus / orbit / lotus adapters · runner
   receivables/           ledger (aging, deductions, denials, freshness) · CSV/XLSX intake · WhatsApp summary + schedule
   onboarding/            schemas & normalisers · column mapping · validation · readiness · job service
